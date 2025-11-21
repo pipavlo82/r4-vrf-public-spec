@@ -30,6 +30,30 @@ This repo intentionally does **not** include sealed entropy cores or commercial 
 - **contracts/R4VRFVerifier.sol** — on-chain verifier contract.
 
 ---
+---
+
+## 🔍 Motivation
+
+R4 VRF focuses on simplicity and auditability. Instead of a complex oracle network,
+it verifies randomness by checking an ECDSA signature on-chain.  
+This is suitable for games, raffles, L2 internal mechanisms, DAO governance
+and other cases where lightweight verifiable randomness is needed.
+
+---
+
+## ⚠️ Limitations (v0)
+
+- Not a decentralized randomness beacon.
+- Does not prevent bias from a malicious node (higher-level protocols must handle this).
+- Uses classical ECDSA (post-quantum support planned in v1+).
+
+---
+
+## 🛤️ Future Work
+
+**v1:** structured domain separation  
+**v2:** dual signatures (ECDSA + ML-DSA-65)  
+**v3:** committee-based randomness beacon  
 
 ## License
 
