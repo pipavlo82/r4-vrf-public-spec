@@ -55,6 +55,35 @@ and other cases where lightweight verifiable randomness is needed.
 **v2:** dual signatures (ECDSA + ML-DSA-65)  
 **v3:** committee-based randomness beacon  
 
+## 🧪 Running tests (Hardhat)
+
+This repo includes a minimal test verifying the end-to-end ECDSA flow.
+
+### 1. Install dependencies
+
+npm init -y
+npm install --save-dev hardhat @nomicfoundation/hardhat-toolbox
+npx hardhat
+
+arduino
+Copy code
+
+Choose **"Create an empty hardhat.config.js"**.
+
+### 2. Add Solidity config
+
+Edit **hardhat.config.js**:
+
+```js
+require("@nomicfoundation/hardhat-toolbox");
+
+module.exports = {
+  solidity: "0.8.21"
+};
+
+3. Run tests
+npx hardhat test
+
 ## License
 
 Apache 2.0.
