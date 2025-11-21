@@ -87,3 +87,15 @@ npx hardhat test
 ## License
 
 Apache 2.0.
+---
+
+## 🔗 Related implementation (non-normative)
+
+A full production-grade implementation of an entropy appliance and VRF pipeline
+based on similar ideas (sealed core, FIPS readiness, dual ECDSA + ML-DSA-65 signatures)
+is maintained separately:
+
+- https://github.com/pipavlo82/r4-monorepo
+
+This repository (`r4-vrf-public-spec`) is intentionally minimal and focuses only
+on the open specification and a small reference verifier.
