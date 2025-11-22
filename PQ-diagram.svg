@@ -1,0 +1,27 @@
+<svg width="820" height="520" xmlns="http://www.w3.org/2000/svg">
+
+<rect x="20" y="20" width="780" height="480" fill="white" stroke="black" stroke-width="2"/>
+
+<text x="40" y="60" font-size="24" font-family="monospace">R4 Post-Quantum Architecture</text>
+
+<rect x="40" y="90" width="350" height="110" fill="#dff" stroke="black"/>
+<text x="60" y="120" font-size="18">Entropy Sources:</text>
+<text x="70" y="145" font-size="14">• jitter • chaos maps • π-noise</text>
+<text x="70" y="165" font-size="14">• system entropy • timers</text>
+
+<rect x="420" y="90" width="350" height="110" fill="#ffd" stroke="black"/>
+<text x="440" y="120" font-size="18">Mixing Layers:</text>
+<text x="450" y="145" font-size="14">• Keccak512 • BLAKE2s</text>
+<text x="450" y="165" font-size="14">• SHAKE • Fisher-Yates</text>
+
+<rect x="40" y="230" width="350" height="110" fill="#dfd" stroke="black"/>
+<text x="60" y="260" font-size="18">VRF Proof:</text>
+<text x="70" y="285" font-size="14">• deterministic hash-based</text>
+<text x="70" y="305" font-size="14">• no elliptic curves</text>
+
+<rect x="420" y="230" width="350" height="110" fill="#fdd" stroke="black"/>
+<text x="440" y="260" font-size="18">PQ Verification:</text>
+<text x="450" y="285" font-size="14">• ML-DSA-65 / Dilithium3</text>
+<text x="450" y="305" font-size="14">• Kyber KEM</text>
+
+</svg>
