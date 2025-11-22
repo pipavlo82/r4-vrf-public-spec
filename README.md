@@ -40,7 +40,61 @@ This is suitable for games, raffles, L2 internal mechanisms, DAO governance
 and other cases where lightweight verifiable randomness is needed.
 
 ---
+Post-Quantum Security Rationale
 
+Modern blockchain systems increasingly depend on cryptographic proofs of randomness and message authenticity. However, classical primitives such as ECDSA, ECDH, and traditional VRF constructions are vulnerable to Shor’s algorithm, making long-term randomness integrity and signature verification unsafe in a post-quantum world.
+
+R4 VRF / Entropy Stack introduces a hybrid security model:
+
+1. PQ-Hardened Entropy Source
+
+The core randomness is mixed using:
+
+Multi-source entropy (system, jitter, chaos, π-based noise)
+
+Keccak-based whitening
+
+Post-quantum–safe hashing domains
+
+Deterministic seed expansion without elliptic curves
+
+This ensures that the randomness pipeline contains no quantum-breakable primitives.
+
+2. PQ-Safe Verification Model
+
+To guarantee long-term verifiability of randomness outputs:
+
+Classical signatures (ECDSA/secp256k1) can be used for compatibility
+
+PQ signatures (ML-DSA-65 / Dilithium3 / Kyber KEM for sealing seeds)
+are supported for forward-secure deployments
+
+Dual-signature mode ensures that even if elliptic curve cryptography is broken in the future, the PQ layer preserves non-repudiation and auditability.
+
+3. No reliance on ecrecover
+
+Traditional Ethereum verifiable functions rely on ecrecover, which is inherently non-PQ.
+R4 VRF avoids this dependency by using:
+
+explicit public keys
+
+hash-to-curve–free VRF proof structure
+
+PQ-friendly verification flow
+
+4. PQ Upgrade Path
+
+Because Ethereum L1 does not yet include post-quantum precompiles, R4 is designed to be compatible with:
+
+future RIP-7560 (PQ verification hints)
+
+EIP-7701 / 7702 (signature pipeline refactors)
+
+late-stage PQ migration for AA (ERC-4337 bundlers)
+
+attested nodes running PQ-safe sealing
+
+This makes R4 a future-proof verifiable randomness system with minimal assumptions and maximum cryptographic longevity.
 ## ⚠️ Limitations (v0)
 
 - Not a decentralized randomness beacon.
