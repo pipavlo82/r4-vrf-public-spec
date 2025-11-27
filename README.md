@@ -489,7 +489,7 @@ Contributions welcome! Please:
 
 - **Specification**: [spec/vrf-spec-v0.md](./spec/vrf-spec-v0.md)
 - **PQ Migration**: [PQ-NOTES.md](./PQ-NOTES.md)
-- **Live Demo**: https://vrf.re4ctor.com
+- **Live Demo**: https://re4ctor.com/api/ 
 - **Documentation**: https://docs.re4ctor.com/vrf
 
 ### Related Projects
