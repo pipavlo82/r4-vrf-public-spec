@@ -240,7 +240,7 @@ R4 VRF includes a staged migration path to quantum-resistant cryptography:
 - Audit-friendly implementation
 
 See [PQ-NOTES.md](./PQ-NOTES.md) for detailed migration strategy.
-
+ML-DSA-65 (NIST FIPS 204, finalized 2024): https://csrc.nist.gov/pubs/fips/204/final
 ---
 
 ## Security Model
@@ -432,6 +432,13 @@ contract MultiSigVRF {
 - Liveness assumptions on multiple parties
 
 For L2 sequencers and AA bundlers, the operator already controls critical infrastructure. Adding cryptographic decentralization without operational decentralization provides minimal security benefit while significantly increasing complexity.
+### What happens if the signer goes offline?
+
+Answer:
+
+Verification still works, but no new randomness can be produced.
+R4 VRF is not a liveness protocol — it assumes the operator controls availability.
+See “Threat Model” section.
 
 ### How is this different from Chainlink VRF?
 
