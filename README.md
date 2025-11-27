@@ -1,13 +1,32 @@
 # R4 VRF — Public Specification
-
-**Minimal, auditable verifiable randomness for Ethereum L2s and account abstraction**
+R4 VRF is the on-chain verification layer of the broader Re4ctoR randomness platform
+**High-assurance, deterministic, sub-20ms verifiable randomness for Ethereum L2s, AA bundlers, ZK provers, and private rollups. Designed for operator-controlled environments where latency and auditability matter more than decentralization.**
 
 R4 VRF provides deterministic on-chain verification of randomness from a trusted entropy source. Designed for L2 sequencers, AA bundlers, ZK prover selection, and private rollups where operational simplicity and low latency matter more than decentralization.
+
+[![spec status](https://img.shields.io/badge/status-v0_spec-blue)]()
+[![license](https://img.shields.io/badge/license-Apache_2.0-green)]()
+[![latency-14ms](https://img.shields.io/badge/latency-14ms-success)]()
+## Table of Contents
+- [Why R4 VRF](#why-r4-vrf)
+- [Verification Flow](#verification-flow)
+- [Quick Start](#quick-start)
+- [Performance Benchmarks](#performance-benchmarks)
+- [Use Cases](#use-cases)
+- [Post-Quantum Migration](#post-quantum-migration)
+- [Security Model](#security-model)
+- [Repository Structure](#repository-structure)
+- [Integration Guide](#integration-guide)
+- [Advanced Configuration](#advanced-configuration)
+- [FAQ](#faq)
+- [License](#license)
+- [Contact](#contact)
 
 ---
 
 ## Why R4 VRF?
-
+Threat Model:
+R4 VRF assumes a trusted operator (L2 sequencer, AA bundler, or private rollup prover coordinator). The verifier guarantees authenticity and integrity of randomness, not unbiasability or decentralization.
 **Performance:**
 - 14 ms median latency (production tested)
 - ~3,100 gas for on-chain verification
@@ -118,7 +137,7 @@ function verify(bytes32 randomness, uint8 v, bytes32 r, bytes32 s)
 - keccak256: ~36 gas
 - ecrecover: ~3,000 gas
 - Comparison: ~3 gas
-- **Total: ~3,100 gas**
+- **Total: ~3,400 gas(varies by compiler version)**
 
 ### Comparison
 
