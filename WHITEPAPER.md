@@ -21,7 +21,7 @@
 
 **High-assurance randomness for blockchain, DeFi, gaming, and mission-critical systems**
 
-[Website](https://re4ctor.com) • [Documentation](https://docs.re4ctor.com) • [API](https://api.re4ctor.com) • [Contact](mailto:shtomko@gmail.com)
+[Website](https://re4ctor.com) • [Documentation](https://docs.re4ctor.com) • [API](https://re4ctor.com/api/) • [Contact](mailto:shtomko@gmail.com)
 
 </div>
 
@@ -299,13 +299,6 @@ Q4 2026  📅 Decentralization
 ```
 
 ---
-
-## Technical Documentation
-
-For detailed technical specifications:
-- 📘 [Research Whitepaper](https://re4ctor.com/whitepaper.pdf) — Cryptographic model, VRF construction
-- 📗 [API Documentation](https://docs.re4ctor.com) — Integration guides, SDKs
-- 📙 [Security Model](https://re4ctor.com/security) — Threat analysis, guarantees
 
 For security auditors:
 - 🔒 Detailed entropy design available under NDA
