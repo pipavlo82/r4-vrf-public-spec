@@ -12,927 +12,343 @@
 ║                                                                              ║
 ║        POST-QUANTUM VERIFIABLE RANDOMNESS & ENTROPY ENGINE                  ║
 ║                                                                              ║
-║                            Whitepaper v0.1                                  ║
-║                                                                              ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 ```
 
 [![Quantum-Resistant](https://img.shields.io/badge/Quantum-Resistant-9acd32?style=for-the-badge)](https://github.com/pipavlo82/r4-monorepo)
-[![Hash-Based VRF](https://img.shields.io/badge/VRF-Hash--Based-00bcd4?style=for-the-badge)](https://github.com/pipavlo82/r4-monorepo)
+[![FIPS-Ready](https://img.shields.io/badge/FIPS-Ready-00bcd4?style=for-the-badge)](https://github.com/pipavlo82/r4-monorepo)
 [![ML-DSA-65](https://img.shields.io/badge/Signature-ML--DSA--65-ff8c3c?style=for-the-badge)](https://github.com/pipavlo82/r4-monorepo)
-[![Curve-Free](https://img.shields.io/badge/Design-Curve--Free-d4af37?style=for-the-badge)](https://github.com/pipavlo82/r4-monorepo)
+
+**High-assurance randomness for blockchain, DeFi, gaming, and mission-critical systems**
+
+[Website](https://re4ctor.com) • [Documentation](https://docs.re4ctor.com) • [API](https://api.re4ctor.com) • [Contact](mailto:shtomko@gmail.com)
 
 </div>
 
 ---
 
-## 📋 Table of Contents
+## Overview
 
-- [Abstract](#-abstract)
-- [Introduction](#-introduction)
-- [Architecture Overview](#-architecture-overview)
-- [Entropy Design](#-entropy-design)
-- [Post-Quantum VRF Construction](#-post-quantum-vrf-construction)
-- [Post-Quantum Design](#-post-quantum-design)
-- [Security Model](#-security-model)
-- [Performance Benchmarks](#-performance-benchmarks)
-- [Ethereum Integration](#-ethereum-integration)
-- [Roadmap](#-roadmap)
-- [Conclusion](#-conclusion)
+**Re4ctoR** is a production-grade, post-quantum verifiable random function (VRF) system designed for applications requiring cryptographically secure, auditable randomness that remains valid even after the advent of large-scale quantum computers.
 
----
+### Key Features
 
-## 📄 Abstract
-
-**R4** is a **post-quantum–resilient** entropy and verifiable randomness system designed for:
-
-- 🔗 Blockchain consensus & smart contracts
-- 🔐 Cryptographic systems requiring long-term security
-- 🌐 Decentralized applications (dApps)
-- 🏦 Financial infrastructure under regulatory scrutiny
-
-The system combines:
-- ✅ **Multi-source entropy** (jitter, chaotic maps, π-noise, hardware timing)
-- ✅ **Deterministic PQ-safe VRF** (hash-based, curve-free)
-- ✅ **Dual-signature verification** (ECDSA + ML-DSA-65)
-- ✅ **Long-term auditability** (quantum-resistant signatures)
-
-> **Key Innovation:** R4 eliminates all elliptic-curve dependencies, ensuring security even after the collapse of classical public-key cryptography.
+- ✅ **Post-Quantum Secure** — Uses NIST-standardized ML-DSA-65 (Dilithium) signatures
+- ✅ **Ultra-Low Latency** — 14ms median API response, <1ms local generation
+- ✅ **High Throughput** — 250,000 ops/sec (API), 900,000 ops/sec (standalone)
+- ✅ **EVM Compatible** — Works with all Ethereum L1/L2s today
+- ✅ **Dual Signatures** — ECDSA for current chains, ML-DSA-65 for long-term audit
+- ✅ **FIPS-Ready** — Engineered for FIPS 140-3 compliance path
 
 ---
 
-## 🌐 Introduction
+## Why Re4ctoR?
 
 ### The Quantum Threat
 
-Modern blockchains rely on cryptography that **will be broken** by quantum computers:
+Existing VRF systems (Chainlink, Drand, API3) rely on elliptic curve cryptography that **will be broken** by quantum computers:
 
-| Current System | Quantum Vulnerability | Time to Break (Est.) |
-|----------------|----------------------|----------------------|
-| ECDSA signatures | ✅ Shor's algorithm | Hours with QECC |
-| ECVRF (Chainlink) | ✅ Discrete log attack | Days with QECC |
-| BLS signatures | ✅ Pairing-based crypto | Days with QECC |
-| Hash-based crypto | ❌ Grover's algorithm | Years (mitigated) |
+| System | Quantum Vulnerable | Post-Quantum Safe |
+|--------|-------------------|-------------------|
+| Chainlink VRF | ✅ ECVRF | ❌ |
+| Drand / LoE | ✅ BLS signatures | ❌ |
+| API3 QRNG | ✅ ECDSA | ❌ |
+| **Re4ctoR** | ❌ | ✅ **Hash-based + ML-DSA** |
 
-### R4 Solution
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    TRADITIONAL VRF STACK                        │
-├─────────────────────────────────────────────────────────────────┤
-│  Elliptic Curve VRF (ECVRF)                                    │
-│      │                                                          │
-│      ├──► Relies on discrete log hardness                      │
-│      ├──► Vulnerable to Shor's algorithm                       │
-│      └──► Broken by quantum computers                          │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│                       R4 PQ-SAFE STACK                          │
-├─────────────────────────────────────────────────────────────────┤
-│  Hash-Based Deterministic VRF                                  │
-│      │                                                          │
-│      ├──► Pure hashing (Keccak, BLAKE2, SHAKE)                │
-│      ├──► No elliptic curves or DH assumptions                │
-│      ├──► Quantum-resistant by design                         │
-│      └──► Verifiable with ML-DSA-65 signatures                │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Design Principles
-
-- ✅ **Future-proof:** No reliance on curves, DH, or hash-to-curve
-- ✅ **Deterministic:** Reproducible VRF proofs
-- ✅ **High-throughput:** 900k ops/s standalone, 150k-250k ops/s under API load
-- ✅ **EVM-compatible:** Works with ERC-4337 AA and future PQ-EIPs
-- ✅ **Audit-ready:** Full statistical validation (NIST, Dieharder, BigCrush)
-
----
-
-## 🏗️ Architecture Overview
-
-### System Components
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                        R4 FULL SYSTEM STACK                          │
-├──────────────────────────────────────────────────────────────────────┤
-│                                                                      │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │              ENTROPY SOURCES (Multi-Channel)               │    │
-│  ├────────────────────────────────────────────────────────────┤    │
-│  │  • Jitter noise        • Chaotic logistic maps            │    │
-│  │  • π-based irrational  • Hardware timing jitter           │    │
-│  │  • System entropy      • Memory variance sampling         │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                              ▼                                       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │         WHITENING & MIXING LAYERS (PQ-Safe)                │    │
-│  ├────────────────────────────────────────────────────────────┤    │
-│  │  Keccak-512 → BLAKE2s → SHAKE128/256 → Fisher-Yates       │    │
-│  │  + bit-plane flattening + long-run trimming                │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                              ▼                                       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │    HASH-BASED DETERMINISTIC VRF (Curve-Free)               │    │
-│  ├────────────────────────────────────────────────────────────┤    │
-│  │  • Pure hashing (no elliptic curves)                       │    │
-│  │  • Bitwise diffusion                                       │    │
-│  │  • Deterministic seeded folding                            │    │
-│  │  • Collision-resistant commitments                         │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                              ▼                                       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │          DUAL SIGNATURE ENGINE (Compatibility)             │    │
-│  ├────────────────────────────────────────────────────────────┤    │
-│  │  • ECDSA (secp256k1) — current smart contracts            │    │
-│  │  • ML-DSA-65 (Dilithium) — post-quantum proofs            │    │
-│  │  • Kyber KEM — seed sealing                               │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                              ▼                                       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │               R4-API LAYER (FastAPI/Docker)                │    │
-│  ├────────────────────────────────────────────────────────────┤    │
-│  │  /v1/random  •  /v1/vrf  •  /v1/health  •  /v1/verify     │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                              ▼                                       │
-│  ┌────────────────────────────────────────────────────────────┐    │
-│  │         MONITORING & VALIDATION (Continuous)               │    │
-│  ├────────────────────────────────────────────────────────────┤    │
-│  │  NIST SP800-22 • Dieharder • PractRand • Bit-plane        │    │
-│  └────────────────────────────────────────────────────────────┘    │
-│                                                                      │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-### Component Details
-
-| Component | Function | Technology |
-|-----------|----------|------------|
-| **R4-Core** | Sealed entropy engine | Proprietary binary |
-| **R4-API** | Public gateway | FastAPI, Docker, RPC |
-| **VRF Engine** | Deterministic randomness | Hash-based, curve-free |
-| **Signature Engine** | Dual verification | ECDSA + ML-DSA-65 |
-| **Seed Sealing** | Private key protection | Kyber KEM |
-| **Monitors** | Quality assurance | NIST, Dieharder, PractRand |
-
----
-
-## 🔬 Entropy Design
-
-### Multi-Source Entropy Collection
-
-R4 aggregates entropy from **six independent sources** to eliminate single points of failure:
+### Re4ctoR Advantages
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│               ENTROPY SOURCE ARCHITECTURE                    │
-├────────────────┬─────────────────────────────────────────────┤
-│  Source        │  Characteristics                            │
-├────────────────┼─────────────────────────────────────────────┤
-│  1. Jitter     │  CPU timing uncertainty (nanosecond)        │
-│  2. Chaotic    │  Logistic map iterations (non-linear)       │
-│  3. π-noise    │  Irrational number expansions               │
-│  4. HW Timer   │  Hardware clock jitter                      │
-│  5. OS Pool    │  /dev/urandom + system entropy              │
-│  6. Memory     │  RAM timing variance sampling               │
-└────────────────┴─────────────────────────────────────────────┘
-```
-
-### Mixing Pipeline (Quantum-Safe)
-
-All mixing stages use **post-quantum primitives**:
-
-```
-Raw Entropy (6 sources)
-        │
-        ▼
-┌───────────────┐
-│  Keccak-512   │  ◄── SHA-3, collision-resistant
-└───────────────┘
-        │
-        ▼
-┌───────────────┐
-│   BLAKE2s     │  ◄── High-speed hashing
-└───────────────┘
-        │
-        ▼
-┌───────────────┐
-│ SHAKE128/256  │  ◄── Extendable-output function
-└───────────────┘
-        │
-        ▼
-┌───────────────┐
-│ Fisher-Yates  │  ◄── Uniform shuffle
-└───────────────┘
-        │
-        ▼
-┌───────────────┐
-│ Bit-plane     │  ◄── Flatten statistical bias
-│ Flattening    │
-└───────────────┘
-        │
-        ▼
-┌───────────────┐
-│ Long-run      │  ◄── Remove sequential patterns
-│ Trimming      │
-└───────────────┘
-        │
-        ▼
-   High-Quality
-   Random Output
-```
-
-### Statistical Validation
-
-Every batch undergoes continuous testing:
-
-| Test Suite | Purpose | Pass Criteria |
-|------------|---------|---------------|
-| **NIST SP 800-22** | Randomness quality | 15/15 tests passed |
-| **Dieharder** | Distribution analysis | p-value > 0.01 |
-| **PractRand** | Long-sequence testing | >1TB without failure |
-| **BigCrush** | Comprehensive suite | 160/160 tests passed |
-| **Bit-plane** | Visual randomness | No detectable patterns |
-
----
-
-## ⚛️ Post-Quantum VRF Construction
-
-### Traditional VRF vs R4 VRF
-
-<table>
-<tr>
-<th>Traditional ECVRF</th>
-<th>R4 Hash-Based VRF</th>
-</tr>
-<tr>
-<td valign="top">
-
-```
-1. Input: message m
-2. Compute: h = H(m)
-3. Map to curve: P = hash_to_curve(h)
-4. VRF output: Y = x·P (scalar mult)
-5. Proof: π = (Γ, c, s)
-   - Γ = x·P
-   - c = H(g, h, Y, Γ)
-   - s = k - c·x
-
-Vulnerability:
-❌ Discrete log problem
-❌ Shor's algorithm breaks this
-❌ Hash-to-curve dependencies
-```
-
-</td>
-<td valign="top">
-
-```
-1. Input: seed s, message m
-2. Commitment: C = H(s || m)
-3. Deterministic fold:
-   - k₁ = SHAKE256(C, 32)
-   - k₂ = BLAKE2s(k₁ || m)
-   - k₃ = Keccak512(k₂)
-4. VRF output: Y = Fisher-Yates(k₃)
-5. Proof: π = (C, path)
-
-Advantages:
-✅ No elliptic curves
-✅ Quantum-resistant
-✅ Deterministic & verifiable
-```
-
-</td>
-</tr>
-</table>
-
-### VRF Properties
-
-R4 VRF satisfies all classical VRF properties **without curves**:
-
-| Property | Implementation | Quantum-Safe |
-|----------|----------------|--------------|
-| **Uniqueness** | Deterministic hash chain | ✅ Yes |
-| **Collision Resistance** | Keccak-512 / BLAKE2s | ✅ Yes |
-| **Pseudorandomness** | Indistinguishable from uniform | ✅ Yes |
-| **Verifiability** | ML-DSA-65 signature on proof | ✅ Yes |
-
-### Algorithm Pseudocode
-
-```python
-def r4_vrf_generate(seed: bytes, message: bytes) -> tuple:
-    """
-    Generate quantum-resistant VRF output and proof.
-    
-    Args:
-        seed: Private entropy seed (sealed with Kyber)
-        message: Public input message
-    
-    Returns:
-        (vrf_output, proof, ml_dsa_signature)
-    """
-    # Commitment phase
-    commitment = keccak512(seed || message)
-    
-    # Deterministic expansion
-    k1 = shake256(commitment, output_len=32)
-    k2 = blake2s(k1 || message)
-    k3 = keccak512(k2)
-    
-    # Apply Fisher-Yates shuffle for uniform distribution
-    vrf_output = fisher_yates_fold(k3)
-    
-    # Generate proof path
-    proof = {
-        'commitment': commitment,
-        'intermediate': [k1, k2, k3],
-        'timestamp': current_time(),
-        'metadata': entropy_stats()
-    }
-    
-    # Sign with ML-DSA-65 for PQ verification
-    ml_dsa_sig = ml_dsa_65_sign(private_key, vrf_output || proof)
-    
-    # Optional: ECDSA for backward compatibility
-    ecdsa_sig = ecdsa_sign(private_key, vrf_output)
-    
-    return (vrf_output, proof, ml_dsa_sig, ecdsa_sig)
-
-
-def r4_vrf_verify(vrf_output: bytes, proof: dict, 
-                  ml_dsa_signature: bytes, public_key: bytes) -> bool:
-    """
-    Verify VRF output and quantum-resistant signature.
-    """
-    # Verify ML-DSA-65 signature
-    if not ml_dsa_65_verify(public_key, vrf_output || proof, ml_dsa_signature):
-        return False
-    
-    # Verify deterministic path
-    k1 = shake256(proof['commitment'], 32)
-    k2 = blake2s(k1 || message)
-    k3 = keccak512(k2)
-    recomputed_output = fisher_yates_fold(k3)
-    
-    return recomputed_output == vrf_output
-```
-
----
-
-## 🛡️ Post-Quantum Design
-
-### 6.1 Curve-Free VRF Model
-
-**Why curves are the problem:**
-
-```
-Classical Cryptography Dependency Chain:
-┌─────────────────────────────────────────────────────────┐
-│  Elliptic Curve → Discrete Log → Quantum Vulnerable     │
-│        │                                                 │
-│        ├──► ECDSA signatures                            │
-│        ├──► ECVRF randomness                            │
-│        ├──► BLS aggregation                             │
-│        └──► All broken by Shor's algorithm              │
-└─────────────────────────────────────────────────────────┘
-
-R4 breaks this chain entirely:
-┌─────────────────────────────────────────────────────────┐
-│  Hash Functions → Collision Resistance → Quantum-Safe   │
-│        │                                                 │
-│        ├──► Keccak-512 (SHA-3)                          │
-│        ├──► BLAKE2s (high-speed)                        │
-│        ├──► SHAKE (XOF)                                 │
-│        └──► Only vulnerable to Grover (manageable)      │
-└─────────────────────────────────────────────────────────┘
-```
-
-### 6.2 PQ-Safe Auditability
-
-R4 ensures **long-term verifiability** even after quantum computers break ECDSA:
-
-```
-┌────────────────────────────────────────────────────────────┐
-│             DUAL-SIGNATURE AUDIT TRAIL                     │
-├────────────────────────────────────────────────────────────┤
-│                                                            │
-│  VRF Output (2025)                                         │
-│       │                                                    │
-│       ├──► ECDSA signature  ◄── Works today (2025)        │
-│       │                         Broken by ~2030-2035      │
-│       │                                                    │
-│       └──► ML-DSA-65 signature ◄── Quantum-resistant      │
-│                                    Valid indefinitely      │
-│                                                            │
-│  Result: Auditors in 2040 can still verify randomness     │
-│          generated in 2025 using ML-DSA-65 proof          │
-│                                                            │
-└────────────────────────────────────────────────────────────┘
-```
-
-**Real-world scenario:**
-```
-2025: Smart contract uses R4 for raffle
-      ├─ ECDSA verified on-chain (current EVMs)
-      └─ ML-DSA-65 signature stored in logs
-
-2030: Quantum computer breaks ECDSA
-      ├─ ECDSA signature now worthless
-      └─ ML-DSA-65 signature still valid ✅
-
-2035: Auditor investigates 2025 raffle
-      ├─ Cannot verify ECDSA (broken)
-      └─ Verifies ML-DSA-65 proof ✅
-      └─ Confirms fairness mathematically
-```
-
-### 6.3 PQ-Safe Entropy Pipeline
-
-All components are quantum-resistant:
-
-| Component | Classical Primitive | Quantum Threat | R4 Replacement |
-|-----------|-------------------|----------------|----------------|
-| Key exchange | ECDH | ✅ Broken | Kyber KEM |
-| Signatures | ECDSA | ✅ Broken | ML-DSA-65 (Dilithium) |
-| Hash | SHA-256 | ⚠️ Weakened | Keccak-512, BLAKE2s |
-| Random | ECVRF | ✅ Broken | Hash-based VRF |
-| Commitment | Hash-to-curve | ✅ Broken | Direct hashing |
-
-### 6.4 Ethereum Upgrade Path
-
-R4 is designed for **future Ethereum standards**:
-
-```
-┌──────────────────────────────────────────────────────────┐
-│           R4 ETHEREUM COMPATIBILITY ROADMAP              │
-├──────────────────────────────────────────────────────────┤
-│                                                          │
-│  TODAY (2025)                                            │
-│  ├─ ERC-4337 Account Abstraction                        │
-│  ├─ Custom verification (userOp)                        │
-│  └─ R4 signatures in validateUserOp()                   │
-│                                                          │
-│  NEAR FUTURE (2026-2027)                                │
-│  ├─ EIP-7701: Set EOA code                              │
-│  ├─ EIP-7702: Set code transaction type                │
-│  ├─ RIP-7560: Native AA                                 │
-│  └─ R4 PQ-wallets via smart contract accounts           │
-│                                                          │
-│  POST-QUANTUM ERA (2028+)                               │
-│  ├─ PQSIGVERIFY opcode                                  │
-│  ├─ FALCON_VERIFY / ML_DSA_VERIFY                       │
-│  ├─ Native PQ precompiles                               │
-│  └─ R4 verification at protocol level                   │
-│                                                          │
-└──────────────────────────────────────────────────────────┘
-```
-
-**Example: ERC-4337 Integration**
-
-```solidity
-// R4-compatible Account Abstraction wallet
-contract R4SmartWallet {
-    bytes public mlDsaPublicKey;
-    
-    function validateUserOp(
-        UserOperation calldata userOp,
-        bytes32 userOpHash,
-        uint256 missingAccountFunds
-    ) external returns (uint256 validationData) {
-        // Extract ML-DSA-65 signature from userOp
-        (bytes memory mlDsaSig, bytes memory vrfProof) = 
-            abi.decode(userOp.signature, (bytes, bytes));
-        
-        // Verify PQ signature (via precompile or library)
-        bool valid = verifyMLDSA65(
-            mlDsaPublicKey,
-            userOpHash,
-            mlDsaSig
-        );
-        
-        if (!valid) return SIG_VALIDATION_FAILED;
-        
-        // Optional: verify VRF randomness proof
-        if (vrfProof.length > 0) {
-            require(verifyR4VRF(vrfProof), "Invalid VRF");
-        }
-        
-        return 0; // Success
-    }
-}
-```
-
----
-
-## 🔒 Security Model
-
-### Threat Model
-
-R4 is designed to resist:
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│                    THREAT LANDSCAPE                          │
+│              RE4CTOR vs TRADITIONAL VRF                      │
 ├────────────────────┬─────────────────────────────────────────┤
-│  Threat            │  R4 Defense                             │
+│  Metric            │  Improvement                            │
 ├────────────────────┼─────────────────────────────────────────┤
-│  ⚛️ Quantum         │  Curve-free design, hash-based crypto  │
-│  🔍 Entropy pred.  │  Multi-source mixing, continuous tests  │
-│  🔄 Replay attack  │  Timestamp + nonce in commitments       │
-│  ⚡ Fault injection│  Fail-closed mode, self-tests           │
-│  🔓 Seed leakage   │  Kyber KEM sealing, HSM integration     │
-│  ✍️ Signature forge│  ML-DSA-65 with 128-bit PQ security     │
-│  📊 Bias detection │  NIST/Dieharder/BigCrush validation     │
+│  Latency           │  2,100-8,500× faster (14ms vs 30-120s) │
+│  Quantum Resistant │  ✅ Yes (others: ❌ No)                │
+│  Long-term Audit   │  ✅ Forever (others: broken post-2030) │
+│  Gas Cost          │  ~8,500 gas (highly efficient)          │
+│  Compliance        │  FIPS 140-3 ready                       │
 └────────────────────┴─────────────────────────────────────────┘
 ```
 
-### Cryptographic Assumptions
+---
 
-R4 security depends **only** on:
+## Architecture
 
-1. **Hash function collision resistance**
-   - Keccak-512: 2^256 security
-   - BLAKE2s: 2^128 security
-   - Both resistant to Grover's algorithm with key extension
+### High-Level Design
 
-2. **ML-DSA-65 signature security**
-   - Based on Learning With Errors (LWE)
-   - NIST PQ standard (FIPS 204)
-   - 128-bit post-quantum security level
+```
+┌──────────────────────────────────────────────────────────────┐
+│                   RE4CTOR SYSTEM STACK                       │
+├──────────────────────────────────────────────────────────────┤
+│                                                              │
+│  ┌────────────────────────────────────────────────┐         │
+│  │   ENTROPY SOURCE (FIPS 140-3 Grade)            │         │
+│  │   • Multi-source collection                    │         │
+│  │   • Continuous health monitoring               │         │
+│  │   • NIST SP800-22 validated                    │         │
+│  └────────────────────────────────────────────────┘         │
+│                       ▼                                      │
+│  ┌────────────────────────────────────────────────┐         │
+│  │   CRYPTOGRAPHIC EXTRACTOR                      │         │
+│  │   • SHA3-256 (Keccak)                          │         │
+│  │   • ChaCha20 DRBG                              │         │
+│  │   • Forward-secure reseeding                   │         │
+│  └────────────────────────────────────────────────┘         │
+│                       ▼                                      │
+│  ┌────────────────────────────────────────────────┐         │
+│  │   VRF GENERATION                               │         │
+│  │   • Deterministic output                       │         │
+│  │   • Verifiable proofs                          │         │
+│  │   • Collision-resistant                        │         │
+│  └────────────────────────────────────────────────┘         │
+│                       ▼                                      │
+│  ┌────────────────────────────────────────────────┐         │
+│  │   DUAL SIGNATURE                               │         │
+│  │   • ECDSA (secp256k1) — EVM compatible        │         │
+│  │   • ML-DSA-65 — Post-quantum proof            │         │
+│  └────────────────────────────────────────────────┘         │
+│                                                              │
+└──────────────────────────────────────────────────────────────┘
+```
 
-3. **Kyber KEM security**
-   - Module-LWE problem
-   - NIST PQ standard (FIPS 203)
-   - 128-bit post-quantum security level
+**Core entropy engine combines:**
+- Multiple independent physical and algorithmic sources
+- Standardized post-quantum cryptographic primitives (SHA3, ChaCha20)
+- Continuous statistical validation (NIST, Dieharder, PractRand)
 
-**No reliance on:**
-- ❌ Discrete logarithm problem
-- ❌ Elliptic curve assumptions
-- ❌ Factorization hardness
-- ❌ Pairing-based cryptography
-
-### Security Guarantees
-
-| Property | Guarantee | Proof Method |
-|----------|-----------|--------------|
-| **Unpredictability** | 2^256 computational security | Multi-source entropy + mixing |
-| **Uniqueness** | One VRF output per (seed, message) | Deterministic hash construction |
-| **Collision Resistance** | 2^256 for Keccak, 2^128 for BLAKE2 | Standard hash security proofs |
-| **Forward Privacy** | Past outputs remain secret after compromise | Ephemeral keys, sealed seeds |
-| **Verifiability** | Anyone can verify with public key | ML-DSA-65 signature |
-| **PQ Resistance** | Secure against quantum adversary | Hash-based + lattice-based crypto |
+*Precise mixing scheme is proprietary and available under NDA for security auditors.*
 
 ---
 
-## ⚡ Performance Benchmarks
+## Performance
 
-### Throughput
+### Production Benchmarks
 
-```
-┌──────────────────────────────────────────────────────────┐
-│              R4 RANDOMNESS GENERATION SPEED              │
-├──────────────────────┬───────────────────────────────────┤
-│  Configuration       │  Throughput                       │
-├──────────────────────┼───────────────────────────────────┤
-│  Standalone Core     │  900,000 ops/sec                  │
-│  API (Single Node)   │  150,000 - 250,000 ops/sec        │
-│  VRF Generation      │  200,000 proofs/sec               │
-│  ML-DSA-65 Signing   │  50,000 signatures/sec            │
-└──────────────────────┴───────────────────────────────────┘
-```
-
-### Latency (Production Benchmarks)
-
-```
-┌──────────────────────────────────────────────────────────┐
-│                VRF LATENCY DISTRIBUTION                  │
-├──────────────────────┬───────────────────────────────────┤
-│  Metric              │  Value                            │
-├──────────────────────┼───────────────────────────────────┤
-│  Minimum             │  12.9 ms                          │
-│  Median (p50)        │  14.2 ms   ████████████████       │
-│  Average             │  16.0 ms   ████████████████████   │
-│  p95                 │  23.0 ms   ██████████████████████ │
-│  p99                 │  29.0 ms   ████████████████████████│
-│  Maximum             │  29.7 ms                          │
-└──────────────────────┴───────────────────────────────────┘
-
-Breakdown:
-• VRF generation:    8-12 ms
-• ML-DSA-65 signing: 2-4 ms
-• Network/Gateway:   1-2 ms
-• JSON serialization: 1-2 ms
-```
-
-### Gas Cost Estimates (Ethereum)
-
-| Operation | Current Gas | With Precompile | Notes |
-|-----------|-------------|-----------------|-------|
-| ECDSA verification | ~45,000 | N/A | Native opcode |
-| R4 VRF verification | ~190,000 | ~50,000 | Pure hash operations |
-| ML-DSA-65 verification | ~700,000 | ~50,000 | Awaiting PQSIGVERIFY |
-| Full dual verification | ~935,000 | ~145,000 | ECDSA + ML-DSA + VRF |
-
-**Note:** Gas costs will decrease dramatically once PQ precompiles are added to the EVM.
-
-### Memory & CPU Profile
-
-```
-┌────────────────────────────────────────────────────────┐
-│              RESOURCE UTILIZATION                      │
-├────────────────┬───────────────────────────────────────┤
-│  Resource      │  Requirement                          │
-├────────────────┼───────────────────────────────────────┤
-│  RAM           │  <100 MB (core engine)                │
-│  CPU           │  1-2 cores @ 2GHz+                    │
-│  Cache         │  High locality (L1/L2 optimized)      │
-│  Disk          │  Minimal (stateless operation)        │
-│  Vectorization │  SSE/AVX optimized mixing             │
-└────────────────┴───────────────────────────────────────┘
-```
+| Metric | Value |
+|--------|-------|
+| **API Latency (median)** | 14ms |
+| **API Latency (p99)** | 29ms |
+| **Local Generation** | <1ms |
+| **API Throughput** | 150,000-250,000 ops/sec |
+| **Standalone Throughput** | 900,000 ops/sec |
+| **Gas Cost (verification)** | ~8,500 gas |
 
 ### Industry Comparison
 
-| Service | Latency | R4 Advantage |
-|---------|---------|--------------|
-| **R4 VRF** | **14ms median** | — |
-| Chainlink VRF | 30-120 seconds | **1000× faster** |
-| Drand / LoE | 3-30 seconds | **200× faster** |
-| Random.org | 100-500 ms | **7-35× faster** |
-| AWS CloudHSM | 10-50 ms | **On par** |
+| Service | Latency | Re4ctoR Advantage |
+|---------|---------|-------------------|
+| **Re4ctoR** | **14ms** | — |
+| Chainlink VRF v2 | 30-120 seconds | **2,100-8,500× faster** |
+| Drand | 3-30 seconds | **214-2,140× faster** |
+| API3 QRNG | 500-2000ms | **36-143× faster** |
+| Random.org | 100-500ms | **7-36× faster** |
 
 ---
 
-## 🔗 Ethereum Integration
+## Use Cases
 
-### Current Compatibility
+### Blockchain & DeFi
+- Validator rotation (PoS consensus)
+- Sequencer fairness (rollups)
+- MEV minimization
+- Fair NFT minting
+- On-chain lotteries
 
-R4 works today with existing Ethereum infrastructure:
+### Gaming
+- Provably fair outcomes
+- Loot generation
+- Tournament seeding
+- Matchmaking
+
+### Enterprise & Defense
+- Mission-critical systems
+- Cryptographic key generation
+- Long-term audit trails
+- Regulatory compliance (FIPS)
+
+---
+
+## Quick Start
+
+### Using the API
+
+```javascript
+// JavaScript/TypeScript
+const response = await fetch('https://api.re4ctor.com/v1/vrf', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    message: 'my_application_seed_001'
+  })
+});
+
+const { vrf_output, ecdsa_signature, ml_dsa_signature } = await response.json();
+```
+
+```python
+# Python
+import requests
+
+response = requests.post('https://api.re4ctor.com/v1/vrf', json={
+    'message': 'my_application_seed_001'
+})
+
+data = response.json()
+vrf_output = data['vrf_output']
+ecdsa_sig = data['ecdsa_signature']
+ml_dsa_sig = data['ml_dsa_signature']
+```
+
+### Solidity Integration
 
 ```solidity
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-interface IR4Verifier {
-    /// @notice Verify ECDSA signature from R4
+interface IRe4ctoRVerifier {
     function verifyECDSA(
         bytes32 vrfOutput,
         bytes calldata signature,
         address signer
     ) external pure returns (bool);
-    
-    /// @notice Verify full R4 VRF proof
-    function verifyVRFProof(
-        bytes32 vrfOutput,
-        bytes calldata proof,
-        bytes calldata commitment
-    ) external pure returns (bool);
 }
 
-contract R4Consumer {
-    IR4Verifier public verifier;
+contract MyLottery {
+    IRe4ctoRVerifier public verifier;
     
-    event RandomnessReceived(bytes32 indexed output, uint256 timestamp);
-    
-    /// @notice Use R4 randomness in your contract
-    function useRandomness(
+    function selectWinner(
+        address[] calldata participants,
         bytes32 vrfOutput,
-        bytes calldata ecdsaSig,
-        bytes calldata proof,
-        address r4Signer
+        bytes calldata signature
     ) external {
-        // Verify ECDSA signature (works today)
         require(
-            verifier.verifyECDSA(vrfOutput, ecdsaSig, r4Signer),
-            "Invalid ECDSA signature"
+            verifier.verifyECDSA(vrfOutput, signature, re4ctorSigner),
+            "Invalid signature"
         );
         
-        // Verify VRF proof (optional, for maximum trust)
-        require(
-            verifier.verifyVRFProof(vrfOutput, proof, bytes("")),
-            "Invalid VRF proof"
-        );
+        uint256 winnerIndex = uint256(vrfOutput) % participants.length;
+        address winner = participants[winnerIndex];
         
-        // Use the verified randomness
-        uint256 randomNumber = uint256(vrfOutput);
-        
-        emit RandomnessReceived(vrfOutput, block.timestamp);
-        
-        // Your application logic here
-        // e.g., select winner, distribute rewards, etc.
-    }
-}
-```
-
-### ERC-4337 Account Abstraction
-
-```solidity
-// R4 PQ-Ready Smart Account
-contract R4Account is BaseAccount {
-    bytes32 public immutable mlDsaPublicKeyHash;
-    
-    constructor(bytes memory mlDsaPublicKey) {
-        mlDsaPublicKeyHash = keccak256(mlDsaPublicKey);
-    }
-    
-    function _validateSignature(
-        UserOperation calldata userOp,
-        bytes32 userOpHash
-    ) internal virtual override returns (uint256) {
-        // Decode dual signature
-        (
-            bytes memory ecdsaSig,
-            bytes memory mlDsaSig
-        ) = abi.decode(userOp.signature, (bytes, bytes));
-        
-        // Verify ECDSA (for current compatibility)
-        if (!_verifyECDSA(userOpHash, ecdsaSig)) {
-            return SIG_VALIDATION_FAILED;
-        }
-        
-        // Store ML-DSA signature for future audit
-        // (Verification will be native once precompiles exist)
-        emit MLDSASignatureStored(userOpHash, mlDsaSig);
-        
-        return 0;
+        // Distribute prize...
     }
 }
 ```
 
 ---
 
-## 🗺️ Roadmap
+## Security & Compliance
 
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                        R4 DEVELOPMENT ROADMAP                    │
-├──────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  ╔════════════════════════════════════════════════════════════╗ │
-│  ║  PHASE 1: PUBLIC BETA                         [CURRENT]    ║ │
-│  ╠════════════════════════════════════════════════════════════╣ │
-│  ║  ✅ API release (/v1/random, /v1/vrf, /v1/health)         ║ │
-│  ║  ✅ VRF endpoints with ECDSA signatures                   ║ │
-│  ║  ✅ Attested node signatures                              ║ │
-│  ║  ✅ Documentation + SDKs (Python, JS, Rust)               ║ │
-│  ║  ✅ Docker deployment stack                               ║ │
-│  ║  🔄 Statistical validation reports                        ║ │
-│  ╚════════════════════════════════════════════════════════════╝ │
-│                              │                                   │
-│                              ▼                                   │
-│  ╔════════════════════════════════════════════════════════════╗ │
-│  ║  PHASE 2: PQ EXPANSION                        [Q2 2025]    ║ │
-│  ╠════════════════════════════════════════════════════════════╣ │
-│  ║  🔲 ML-DSA-65 full integration                            ║ │
-│  ║  🔲 Kyber-sealed seed management                          ║ │
-│  ║  🔲 PQ verification demos on-chain                        ║ │
-│  ║  🔲 Ethereum AA PQ wallet example                         ║ │
-│  ║  🔲 Testnet deployment (Sepolia/Holesky)                  ║ │
-│  ╚════════════════════════════════════════════════════════════╝ │
-│                              │                                   │
-│                              ▼                                   │
-│  ╔════════════════════════════════════════════════════════════╗ │
-│  ║  PHASE 3: FULL PQ HARDENING                   [Q4 2025]    ║ │
-│  ╠════════════════════════════════════════════════════════════╣ │
-│  ║  🔲 PQSIGVERIFY / FALCON_VERIFY RIP proposal              ║ │
-│  ║  🔲 On-chain VRF verification with PQ proofs              ║ │
-│  ║  🔲 Decentralized beacon mode (multi-node)                ║ │
-│  ║  🔲 Cross-chain randomness bridging                       ║ │
-│  ║  🔲 Mainnet deployment                                    ║ │
-│  ╚════════════════════════════════════════════════════════════╝ │
-│                              │                                   │
-│                              ▼                                   │
-│  ╔════════════════════════════════════════════════════════════╗ │
-│  ║  PHASE 4: ENTERPRISE / DEFENSE                [2026+]     ║ │
-│  ╠════════════════════════════════════════════════════════════╣ │
-│  ║  🔲 Long-term audit-proof mode                            ║ │
-│  ║  🔲 Hardened entropy sealing (HSM integration)            ║ │
-│  ║  🔲 FIPS 140-3 certification                              ║ │
-│  ║  🔲 Multi-region beacon clusters                          ║ │
-│  ║  🔲 Government / defense deployments                      ║ │
-│  ╚════════════════════════════════════════════════════════════╝ │
-│                                                                  │
-└──────────────────────────────────────────────────────────────────┘
-```
+### Cryptographic Primitives
 
-### Milestone Details
+All components use **NIST-standardized** or **widely-validated** primitives:
 
-| Phase | Timeline | Key Deliverables |
-|-------|----------|------------------|
-| **Phase 1** | NOW | API, VRF, ECDSA, docs, Docker |
-| **Phase 2** | Q2 2025 | ML-DSA-65, Kyber, AA wallets |
-| **Phase 3** | Q4 2025 | Decentralized beacon, mainnet |
-| **Phase 4** | 2026+ | FIPS certification, enterprise |
+- **Hash Functions:** SHA3-256 (FIPS 202)
+- **Stream Cipher:** ChaCha20 (RFC 8439)
+- **Post-Quantum Signatures:** ML-DSA-65 (FIPS 204)
+- **Entropy Validation:** NIST SP 800-22, Dieharder, PractRand
+
+### Security Model
+
+Re4ctoR is designed to resist:
+- ⚛️ Quantum computer attacks (Shor's algorithm)
+- 🔍 Entropy prediction attacks
+- 🔄 Replay attacks
+- ⚡ State compromise (forward security)
+- ✍️ Signature forgery
+
+**Security does not rely on secrecy of design** — even with full knowledge of architecture, outputs are unpredictable without internal state access.
+
+### Compliance Roadmap
+
+- ✅ **Current:** NIST SP 800-22 statistical validation
+- ✅ **Current:** ML-DSA-65 (FIPS 204 draft)
+- 🔄 **Q1 2026:** FIPS 140-3 ESV submission
+- 📅 **2026:** Formal security audit
+- 📅 **2027:** FIPS 140-3 Level 2 certification
 
 ---
 
-## 📝 Conclusion
-
-**R4** represents a fundamental shift in verifiable randomness design:
-
-### Key Innovations
-
-| Feature | Traditional VRF | R4 |
-|---------|-----------------|-----|
-| Curve dependency | Required | **Eliminated** |
-| Quantum resistance | ❌ Broken by Shor | ✅ Hash-based |
-| Long-term audit | ❌ Signatures expire | ✅ ML-DSA-65 forever |
-| Performance | Slow (seconds) | **Fast (14ms)** |
-| Compliance path | No FIPS alignment | **FIPS 140-3 ready** |
-
-### Why R4 Matters
-
-1. **Future-Native:** Built for the post-quantum world, not adapted to it
-2. **Production-Ready:** 14ms latency, 900k ops/s, statistical validation
-3. **Ethereum-Compatible:** Works today with ERC-4337, ready for future PQ-EIPs
-4. **Audit-Proof:** ML-DSA-65 signatures remain valid indefinitely
+## Roadmap
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                                                                 │
-│       R4: Verifiable Randomness for the Quantum Age            │
-│                                                                 │
-│              Deterministic • Hash-Based • Curve-Free           │
-│                     Quantum-Resilient • Auditable              │
-│                                                                 │
-│                 "Fairness you can prove. Forever."             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
+Q4 2025  ✅ Public Beta
+         • API launch
+         • VRF specification
+         • ML-DSA integration
+         • Statistical validation
+
+Q1 2026  🔄 Ethereum Integration
+         • Solidity verifier contracts
+         • ERC-4337 wallet examples
+         • Testnet deployment
+
+Q2 2026  📅 Production Hardening
+         • Security audit
+         • FIPS ESV submission
+         • Mainnet launch
+
+Q4 2026  📅 Decentralization
+         • Multi-node beacon
+         • Threshold signatures
+
+2027+    📅 Enterprise & Standards
+         • FIPS certification
+         • Government deployments
+         • EIP proposals
 ```
 
 ---
 
-## 📎 Appendix
+## Technical Documentation
 
-### A. Test Vectors
+For detailed technical specifications:
+- 📘 [Research Whitepaper](https://re4ctor.com/whitepaper.pdf) — Cryptographic model, VRF construction
+- 📗 [API Documentation](https://docs.re4ctor.com) — Integration guides, SDKs
+- 📙 [Security Model](https://re4ctor.com/security) — Threat analysis, guarantees
 
-```json
-{
-  "test_vector_1": {
-    "seed": "0x0123456789abcdef0123456789abcdef",
-    "message": "test_message_001",
-    "expected_vrf_output": "0x7f8e9d3c2a1b4f5e6d7c8b9a0f1e2d3c",
-    "commitment": "0xa1b2c3d4e5f6...",
-    "ml_dsa_signature": "0x3045022100..."
-  },
-  "test_vector_2": {
-    "seed": "0xfedcba9876543210fedcba9876543210",
-    "message": "test_message_002",
-    "expected_vrf_output": "0x1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d",
-    "commitment": "0xb2c3d4e5f6a7...",
-    "ml_dsa_signature": "0x3046022200..."
-  }
-}
-```
-
-### B. Entropy Quality Report
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│                NIST SP 800-22 TEST RESULTS                     │
-├─────────────────────────────────────┬──────────────────────────┤
-│  Test                               │  Result                  │
-├─────────────────────────────────────┼──────────────────────────┤
-│  Frequency (Monobit)                │  PASSED (p=0.7532)       │
-│  Block Frequency                    │  PASSED (p=0.4215)       │
-│  Cumulative Sums                    │  PASSED (p=0.6891)       │
-│  Runs                               │  PASSED (p=0.8234)       │
-│  Longest Run of Ones                │  PASSED (p=0.5567)       │
-│  Binary Matrix Rank                 │  PASSED (p=0.3912)       │
-│  Discrete Fourier Transform         │  PASSED (p=0.7123)       │
-│  Non-overlapping Template           │  PASSED (p=0.4456)       │
-│  Overlapping Template               │  PASSED (p=0.6234)       │
-│  Universal Statistical              │  PASSED (p=0.5891)       │
-│  Approximate Entropy                │  PASSED (p=0.7012)       │
-│  Random Excursions                  │  PASSED (p=0.8234)       │
-│  Random Excursions Variant          │  PASSED (p=0.7654)       │
-│  Serial                             │  PASSED (p=0.4567)       │
-│  Linear Complexity                  │  PASSED (p=0.6789)       │
-├─────────────────────────────────────┼──────────────────────────┤
-│  OVERALL                            │  15/15 PASSED ✅         │
-└─────────────────────────────────────┴──────────────────────────┘
-```
-
-### C. References
-
-1. NIST FIPS 203 (Kyber) — Module-Lattice KEM Standard
-2. NIST FIPS 204 (ML-DSA/Dilithium) — Module-Lattice Signature Standard
-3. NIST SP 800-22 — Statistical Test Suite for RNGs
-4. ERC-4337 — Account Abstraction Standard
-5. TestU01 BigCrush — Comprehensive RNG Test Suite
+For security auditors:
+- 🔒 Detailed entropy design available under NDA
+- 🔒 ESV validation package available on request
 
 ---
 
-## 📞 Contact
+## FAQ
+
+**Q: How does Re4ctoR differ from Chainlink VRF?**
+
+Re4ctoR is 2,000× faster (14ms vs 60s), post-quantum secure, and provides long-term audit trails that remain valid after quantum computers break ECDSA.
+
+**Q: Is Re4ctoR decentralized?**
+
+Currently centralized with plans for decentralized multi-node beacon in Q4 2026. Current design allows independent verification via dual signatures.
+
+**Q: What chains are supported?**
+
+All EVM-compatible chains (Ethereum, Polygon, Arbitrum, Optimism, Base, etc.) via standard ECDSA signatures.
+
+**Q: How much does it cost?**
+
+API pricing TBA. On-chain verification costs ~8,500 gas (~$0.10-1 depending on gas prices).
+
+**Q: Can I run Re4ctoR on-premise?**
+
+Enterprise deployments available. Contact us for licensing.
+
+---
+
+## Contact
 
 <div align="center">
 
 [![Email](https://img.shields.io/badge/Email-shtomko%40gmail.com-00bcd4?style=for-the-badge&logo=gmail)](mailto:shtomko@gmail.com)
 [![GitHub](https://img.shields.io/badge/GitHub-pipavlo82-181717?style=for-the-badge&logo=github)](https://github.com/pipavlo82)
+[![Website](https://img.shields.io/badge/Website-re4ctor.com-9acd32?style=for-the-badge&logo=google-chrome)](https://re4ctor.com)
 
-**Maintainer:** Pavlo Tvardovskyi
+**Maintainer:** Pavlo Tvardovskyi  
+**Organization:** Re4ctoR Research Group
+
+For partnerships, audits, or enterprise licensing: **shtomko@gmail.com**
 
 </div>
 
@@ -943,25 +359,21 @@ contract R4Account is BaseAccount {
 ```
 ╔══════════════════════════════════════════════════════════════╗
 ║                                                              ║
-║                   ⚛️  R4 — ENTROPY REACTOR                  ║
+║         "Fairness you can prove. On-chain. Forever."        ║
 ║                                                              ║
-║           Post-Quantum Verifiable Randomness Engine          ║
-║                                                              ║
-║          Hash-Based • Curve-Free • Future-Native            ║
-║                                                              ║
-║        "Fairness you can prove. On-chain. Forever."         ║
+║    Building randomness infrastructure for the next 50 years  ║
 ║                                                              ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
 **⭐ Star this repo if you find it useful!**
 
-[![GitHub stars](https://img.shields.io/github/stars/pipavlo82/r4-monorepo?style=social)](https://github.com/pipavlo82/r4-monorepo/stargazers)
-
 </div>
 
 ---
 
-<div align="center">
-<sub>Whitepaper v0.1 • Last updated: 2025</sub>
-</div>
+## License
+
+Proprietary — Contact for licensing terms.
+
+Core cryptographic specifications published for transparency and security review.
