@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" style="background:#0d1117">
+  <!-- Title -->
+  <text x="400" y="40" font-family="monospace" font-size="18" fill="#58a6ff" text-anchor="middle" font-weight="bold">
+    R4 VRF VERIFICATION FLOW
+  </text>
+  
+  <!-- Off-chain section -->
+  <rect x="50" y="80" width="700" height="160" fill="#161b22" stroke="#30363d" stroke-width="2" rx="8"/>
+  <text x="70" y="110" font-family="monospace" font-size="14" fill="#7ee787" font-weight="bold">Off-chain R4 node:</text>
+  
+  <!-- Step 1 -->
+  <text x="90" y="140" font-family="monospace" font-size="12" fill="#c9d1d9">1. Generate 256-bit randomness</text>
+  <line x1="320" y1="135" x2="420" y2="135" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
+  <text x="440" y="140" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">R</text>
+  
+  <!-- Step 2 -->
+  <text x="90" y="170" font-family="monospace" font-size="12" fill="#c9d1d9">2. Compute keccak256(R)</text>
+  <line x1="320" y1="165" x2="420" y2="165" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
+  <text x="440" y="170" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">hash</text>
+  
+  <!-- Step 3 -->
+  <text x="90" y="200" font-family="monospace" font-size="12" fill="#c9d1d9">3. Sign hash with secp256k1</text>
+  <line x1="320" y1="195" x2="420" y2="195" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
+  <text x="440" y="200" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">(v, r, s)</text>
+  
+  <!-- On-chain section -->
+  <rect x="50" y="270" width="700" height="190" fill="#161b22" stroke="#30363d" stroke-width="2" rx="8"/>
+  <text x="70" y="300" font-family="monospace" font-size="14" fill="#7ee787" font-weight="bold">Smart contract:</text>
+  
+  <!-- Step 4 -->
+  <text x="90" y="330" font-family="monospace" font-size="12" fill="#c9d1d9">4. Recompute keccak256(R)</text>
+  <line x1="320" y1="325" x2="420" y2="325" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
+  <text x="440" y="330" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">hash</text>
+  
+  <!-- Step 5 -->
+  <text x="90" y="360" font-family="monospace" font-size="12" fill="#c9d1d9">5. Recover signer via ecrecover</text>
+  <line x1="320" y1="355" x2="420" y2="355" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
+  <text x="440" y="360" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">recovered</text>
+  
+  <!-- Step 6 -->
+  <text x="90" y="390" font-family="monospace" font-size="12" fill="#c9d1d9">6. Compare to trusted address</text>
+  <line x1="320" y1="385" x2="420" y2="385" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
+  <text x="440" y="390" font-family="monospace" font-size="12" fill="#7ee787" font-weight="bold">✓ ok</text>
+  <text x="500" y="390" font-family="monospace" font-size="12" fill="#f85149">/</text>
+  <text x="520" y="390" font-family="monospace" font-size="12" fill="#f85149" font-weight="bold">✗ fail</text>
+  
+  <!-- Step 7 -->
+  <text x="90" y="420" font-family="monospace" font-size="12" fill="#c9d1d9">7. Use R as verified entropy</text>
+  <line x1="320" y1="415" x2="420" y2="415" stroke="#7ee787" stroke-width="2" marker-end="url(#arrowgreen)"/>
+  <text x="440" y="420" font-family="monospace" font-size="12" fill="#7ee787" font-weight="bold">fair randomness</text>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#58a6ff"/>
+    </marker>
+    <marker id="arrowgreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7ee787"/>
+    </marker>
+  </defs>
+</svg>
