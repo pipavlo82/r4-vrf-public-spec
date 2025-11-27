@@ -1,193 +1,84 @@
-<div align="center">
+# R4 VRF — Public Specification
 
-```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                                                                              ║
-║           ██████╗ ██╗  ██╗    ██╗   ██╗██████╗ ███████╗                     ║
-║           ██╔══██╗██║  ██║    ██║   ██║██╔══██╗██╔════╝                     ║
-║           ██████╔╝███████║    ██║   ██║██████╔╝█████╗                       ║
-║           ██╔══██╗╚════██║    ╚██╗ ██╔╝██╔══██╗██╔══╝                       ║
-║           ██║  ██║     ██║     ╚████╔╝ ██║  ██║██║                          ║
-║           ╚═╝  ╚═╝     ╚═╝      ╚═══╝  ╚═╝  ╚═╝╚═╝                          ║
-║                                                                              ║
-║              VERIFIABLE RANDOM FUNCTION — PUBLIC SPECIFICATION              ║
-║                                                                              ║
-║        Open • Permissionless • Auditable • Post-Quantum Ready               ║
-║                                                                              ║
-╚══════════════════════════════════════════════════════════════════════════════╝
-```
+**Minimal, auditable verifiable randomness for Ethereum L2s and account abstraction**
 
-</div>
-
-# R4 VRF — Public Specification (v0)
-
-A **minimal, auditable** verifiable randomness primitive aligned with Ethereum's long-term cryptographic roadmap.
-
-This repository provides an **open specification**, minimal Solidity verifier, and reference test suite for validating randomness produced by an R4 entropy node.
-
-It does **not** contain sealed entropy core code or any proprietary components — only the open verification layer intended for Ethereum and EVM chains.
+R4 VRF provides deterministic on-chain verification of randomness from a trusted entropy source. Designed for L2 sequencers, AA bundlers, ZK prover selection, and private rollups where operational simplicity and low latency matter more than decentralization.
 
 ---
 
-## 🎯 Goal
+## Why R4 VRF?
 
-Create the simplest possible verifiable randomness flow that:
+**Performance:**
+- 14 ms median latency (production tested)
+- ~3,100 gas for on-chain verification
+- 4,000x faster than oracle networks
 
-- ✅ is easy to audit
-- ✅ is compatible with ECDSA today
-- ✅ has explicit PQ-upgrade paths
-- ✅ integrates cleanly into L2 sequencers, AA, RANDAO, and MEV-resistant pipelines
+**Simplicity:**
+- Single Solidity contract, no dependencies
+- Pure EVM verification (ecrecover + keccak256)
+- ~50 lines of auditable code
 
-**R4 VRF is intentionally minimal** — no oracle networks, no committees, no trust assumptions beyond a single verifiable signer.
-
----
-
-## 📐 High-Level Verification Flow
-
-<div align="center">
-
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" style="background:#0d1117">
-  <!-- Title -->
-  <text x="400" y="40" font-family="monospace" font-size="18" fill="#58a6ff" text-anchor="middle" font-weight="bold">
-    R4 VRF VERIFICATION FLOW
-  </text>
-  
-  <!-- Off-chain section -->
-  <rect x="50" y="80" width="700" height="160" fill="#161b22" stroke="#30363d" stroke-width="2" rx="8"/>
-  <text x="70" y="110" font-family="monospace" font-size="14" fill="#7ee787" font-weight="bold">Off-chain R4 node:</text>
-  
-  <!-- Step 1 -->
-  <text x="90" y="140" font-family="monospace" font-size="12" fill="#c9d1d9">1. Generate 256-bit randomness</text>
-  <line x1="320" y1="135" x2="420" y2="135" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
-  <text x="440" y="140" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">R</text>
-  
-  <!-- Step 2 -->
-  <text x="90" y="170" font-family="monospace" font-size="12" fill="#c9d1d9">2. Compute keccak256(R)</text>
-  <line x1="320" y1="165" x2="420" y2="165" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
-  <text x="440" y="170" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">hash</text>
-  
-  <!-- Step 3 -->
-  <text x="90" y="200" font-family="monospace" font-size="12" fill="#c9d1d9">3. Sign hash with secp256k1</text>
-  <line x1="320" y1="195" x2="420" y2="195" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
-  <text x="440" y="200" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">(v, r, s)</text>
-  
-  <!-- On-chain section -->
-  <rect x="50" y="270" width="700" height="190" fill="#161b22" stroke="#30363d" stroke-width="2" rx="8"/>
-  <text x="70" y="300" font-family="monospace" font-size="14" fill="#7ee787" font-weight="bold">Smart contract:</text>
-  
-  <!-- Step 4 -->
-  <text x="90" y="330" font-family="monospace" font-size="12" fill="#c9d1d9">4. Recompute keccak256(R)</text>
-  <line x1="320" y1="325" x2="420" y2="325" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
-  <text x="440" y="330" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">hash</text>
-  
-  <!-- Step 5 -->
-  <text x="90" y="360" font-family="monospace" font-size="12" fill="#c9d1d9">5. Recover signer via ecrecover</text>
-  <line x1="320" y1="355" x2="420" y2="355" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
-  <text x="440" y="360" font-family="monospace" font-size="12" fill="#ffa657" font-weight="bold">recovered</text>
-  
-  <!-- Step 6 -->
-  <text x="90" y="390" font-family="monospace" font-size="12" fill="#c9d1d9">6. Compare to trusted address</text>
-  <line x1="320" y1="385" x2="420" y2="385" stroke="#58a6ff" stroke-width="2" marker-end="url(#arrowblue)"/>
-  <text x="440" y="390" font-family="monospace" font-size="12" fill="#7ee787" font-weight="bold">✓ ok</text>
-  <text x="500" y="390" font-family="monospace" font-size="12" fill="#f85149">/</text>
-  <text x="520" y="390" font-family="monospace" font-size="12" fill="#f85149" font-weight="bold">✗ fail</text>
-  
-  <!-- Step 7 -->
-  <text x="90" y="420" font-family="monospace" font-size="12" fill="#c9d1d9">7. Use R as verified entropy</text>
-  <line x1="320" y1="415" x2="420" y2="415" stroke="#7ee787" stroke-width="2" marker-end="url(#arrowgreen)"/>
-  <text x="440" y="420" font-family="monospace" font-size="12" fill="#7ee787" font-weight="bold">fair randomness</text>
-  
-  <!-- Arrow markers -->
-  <defs>
-    <marker id="arrowblue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#58a6ff"/>
-    </marker>
-    <marker id="arrowgreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#7ee787"/>
-    </marker>
-  </defs>
-</svg>
-
-</div>
-
-<details>
-<summary>Text-based flow diagram</summary>
-
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         R4 VRF VERIFICATION FLOW                             │
-├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
-│  Off-chain R4 node:                                                          │
-│   1. Generate 256-bit randomness  ───────────────►   R                       │
-│   2. Compute keccak256(R)         ───────────────►   hash                    │
-│   3. Sign hash with secp256k1     ───────────────►   (v, r, s)               │
-│                                                                              │
-│  Smart contract:                                                             │
-│   4. Recompute keccak256(R)      ───────────────►   hash                     │
-│   5. Recover signer via ecrecover ──────────────►   recovered                │
-│   6. Compare to trusted address   ──────────────►   ok / fail                │
-│   7. Use R as verified entropy    ──────────────►   fair randomness          │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-```
-
-</details>
+**Future-proof:**
+- Explicit post-quantum migration path
+- Compatible with ML-DSA-65 (NIST FIPS 204)
+- No protocol redesign needed for PQ transition
 
 ---
 
-## 📁 Repository Structure
+## Verification Flow
 
 ```
-r4-vrf-public-spec/
-│
-├── README.md                     ← You are here
-├── LICENSE                       ← Apache 2.0
-├── PQ-NOTES.md                   ← Post-quantum readiness notes
-│
-├── contracts/
-│   ├── R4VRFVerifier.sol         ← Minimal ECDSA verifier
-│   └── R4VRFVerifierCanonical.sol← Canonical live-node verifier
-│
-├── spec/
-│   └── vrf-spec-v0.md            ← Formal specification
-│
-└── test/
-    ├── verify_raw_digest.js      ← Verifies keccak256(R)
-    └── verify_live.js            ← Verifies a real R4 output
+Off-chain entropy node:
+  1. Generate 256-bit randomness R
+  2. Compute hash = keccak256(R)
+  3. Sign hash with secp256k1 → (v, r, s)
+
+Smart contract:
+  4. Recompute hash' = keccak256(R)
+  5. Recover signer = ecrecover(hash', v, r, s)
+  6. Verify signer == trustedSigner
+  7. Use R as verified randomness
 ```
+
+**Properties:**
+- Deterministic verification
+- Signature binds to exact randomness value
+- No external oracle dependencies
 
 ---
 
-## 🧩 Minimal Verifier Contract
+## Quick Start
 
-**`R4VRFVerifier.sol`**
+### Installation
 
-A fully auditable, dependency-free ECDSA verifier:
+```bash
+npm install @r4/vrf-contracts
+```
 
-- ✅ 1 solidity file
-- ✅ no inheritance
-- ✅ no inline assembly
-- ✅ no curve operations beyond `ecrecover`
-
-**A reviewer should be able to fully audit it in ~10 minutes.**
-
-### Usage Example
+### Basic Integration
 
 ```solidity
-import "./R4VRFVerifier.sol";
+import "@r4/vrf-contracts/R4VRFVerifier.sol";
 
 contract MyLottery {
-    R4VRFVerifier verifier;
-    
-    function selectWinner(
+    R4VRFVerifier public verifier;
+    address[] public participants;
+
+    constructor(address _verifier) {
+        verifier = R4VRFVerifier(_verifier);
+    }
+
+    function drawWinner(
         bytes32 randomness,
         uint8 v,
         bytes32 r,
         bytes32 s
     ) external {
-        require(verifier.verify(randomness, v, r, s), "Invalid VRF");
-        
+        require(
+            verifier.verify(randomness, v, r, s),
+            "Invalid VRF signature"
+        );
+
         uint256 winnerIndex = uint256(randomness) % participants.length;
         payable(participants[winnerIndex]).transfer(prize);
     }
@@ -196,73 +87,204 @@ contract MyLottery {
 
 ---
 
-## ⚛️ Post-Quantum Roadmap
+## Performance Benchmarks
 
-R4 VRF is designed with compatibility for the post-quantum transition:
+### Latency
 
-| Layer | PQ-Safety | Notes |
-|-------|-----------|-------|
-| **Hashing** | ✅ `keccak256` | PQ-resistant (Grover-bounded) |
-| **Entropy pipeline** | ✅ No ECC | Chaos + system + PQ-safe domains |
-| **Verification** | ⚠️ ECDSA today | To be replaced with ML-DSA-65 |
-| **Upgrade path** | ✅ Dual signatures | ECDSA + ML-DSA-65 hybrid |
+Measured on production VPS (end-to-end `/v1/vrf?sig=ecdsa`):
 
-**Future Ethereum precompiles** (e.g., `PQSIGVERIFY`) will drop-in replace verification logic without changing the R4 protocol.
+| Metric | Latency |
+|--------|---------|
+| Median (p50) | **14 ms** |
+| Average | 16 ms |
+| p95 | 23 ms |
+| p99 | <30 ms |
 
-See **[PQ-NOTES.md](./PQ-NOTES.md)** for detailed migration strategy.
+*Based on 100+ sequential requests. Network-dependent.*
+
+### Gas Cost
+
+```solidity
+function verify(bytes32 randomness, uint8 v, bytes32 r, bytes32 s) 
+    public view returns (bool) 
+{
+    bytes32 digest = keccak256(abi.encodePacked(randomness));
+    address recovered = ecrecover(digest, v, r, s);
+    return recovered == trustedSigner;
+}
+```
+
+**Gas breakdown:**
+- keccak256: ~36 gas
+- ecrecover: ~3,000 gas
+- Comparison: ~3 gas
+- **Total: ~3,100 gas**
+
+### Comparison
+
+| Solution | Latency | Gas Cost | Decentralization |
+|----------|---------|----------|------------------|
+| R4 VRF | 14 ms | ~3,100 | Single signer |
+| Chainlink VRF | 60-180 sec | ~200,000 | Oracle network |
+| RANDAO | 12 sec | Native | Validator set |
+| drand | 30 sec | ~150,000 | Threshold |
 
 ---
 
-## 🧩 Integration Examples
+## Use Cases
 
-### Account Abstraction (ERC-4337)
+### L2 Sequencer Rotation
 
-**Use cases:**
-- Entropy for session keys
-- Anti-sybil request throttling
-- Random AA policies
-
-**Integration:**
 ```solidity
-contract AABundler {
-    R4VRFVerifier verifier;
-    
-    function shouldBundle(uint256 slot, bytes32 vrf, ...) external view returns (bool) {
-        require(verifier.verify(vrf, v, r, s), "Invalid VRF");
-        return uint256(vrf) % totalBundlers == myIndex;
+contract SequencerRotation {
+    R4VRFVerifier public vrf;
+    address[] public sequencers;
+
+    function rotateSequencer(
+        bytes32 randomness,
+        uint8 v, bytes32 r, bytes32 s
+    ) external {
+        require(vrf.verify(randomness, v, r, s));
+        
+        uint256 index = uint256(randomness) % sequencers.length;
+        currentSequencer = sequencers[index];
     }
 }
 ```
 
-### L2 Sequencers
+### Account Abstraction Bundler Selection
 
-**Requirements:**
-- Unpredictable ordering
-- Fair batch rotation
-- MEV randomization
+```solidity
+contract AABundlerPool {
+    R4VRFVerifier public vrf;
+    mapping(uint256 => address) public bundlers;
 
-**Performance:**
-- Off-chain: <1ms (signing)
-- On-chain: ~500 gas (verification)
+    function assignBundler(
+        UserOperation calldata op,
+        bytes32 randomness,
+        uint8 v, bytes32 r, bytes32 s
+    ) external returns (address) {
+        require(vrf.verify(randomness, v, r, s));
+        
+        uint256 seed = uint256(keccak256(abi.encodePacked(
+            randomness,
+            op.sender,
+            block.number
+        )));
+        
+        return bundlers[seed % bundlerCount];
+    }
+}
+```
 
-### RANDAO Compatibility
+### ZK Prover Assignment
 
-R4 VRF can serve as:
-- Source for validator randomness
-- Fallback if RANDAO is empty
-- Entropy for L2 prover seeds
+```solidity
+contract ProverSelection {
+    R4VRFVerifier public vrf;
+    address[] public provers;
+
+    function selectProver(
+        uint256 batchId,
+        bytes32 randomness,
+        uint8 v, bytes32 r, bytes32 s
+    ) external returns (address) {
+        require(vrf.verify(randomness, v, r, s));
+        
+        uint256 seed = uint256(keccak256(abi.encodePacked(
+            randomness,
+            batchId
+        )));
+        
+        return provers[seed % provers.length];
+    }
+}
+```
 
 ---
 
-## 🧪 Testing
+## Post-Quantum Migration
+
+R4 VRF includes a staged migration path to quantum-resistant cryptography:
+
+| Phase | Off-chain | On-chain | Status |
+|-------|-----------|----------|--------|
+| **Phase 0** | ECDSA | ECDSA | ✅ Production |
+| **Phase 1** | ECDSA + ML-DSA-65 | ECDSA | 🔄 Dual-sign audit |
+| **Phase 2** | ECDSA + ML-DSA-65 | Both | ⏳ Precompile wait |
+| **Phase 3** | ML-DSA-65 | ML-DSA-65 | 🔮 Post-quantum |
+
+**ML-DSA-65** (NIST FIPS 204) provides:
+- Standardized post-quantum signature scheme
+- Module-LWE security basis
+- Reasonable signature sizes (~2.4 KB)
+- Audit-friendly implementation
+
+See [PQ-NOTES.md](./PQ-NOTES.md) for detailed migration strategy.
+
+---
+
+## Security Model
+
+### What R4 VRF Guarantees
+
+✅ **Authenticity**: Only trusted signer can produce valid signatures  
+✅ **Integrity**: Signature binds to exact randomness value  
+✅ **Determinism**: Same (R, σ) always verifies identically  
+✅ **Auditability**: Minimal code surface, no hidden complexity  
+
+### What R4 VRF Does NOT Guarantee
+
+❌ **Decentralization**: Single signer model (by design)  
+❌ **Unbiasability**: Signer can choose favorable randomness  
+❌ **Liveness**: Offline signer means no randomness  
+❌ **Commit-reveal**: One-shot response, no hiding phase  
+
+### Appropriate Use Cases
+
+**Good fit:**
+- L2 sequencers (operator already trusted)
+- Private/consortium rollups
+- AA bundler pools (operator-controlled)
+- Enterprise applications with SLAs
+- Gaming with operator accountability
+
+**Poor fit:**
+- L1 consensus randomness
+- Trustless lotteries requiring unbiasability
+- Systems requiring 100% uptime guarantees
+- Applications needing decentralization
+
+---
+
+## Repository Structure
+
+```
+r4-vrf-public-spec/
+├── README.md                     # This file
+├── LICENSE                       # Apache 2.0
+├── PQ-NOTES.md                   # Post-quantum migration details
+│
+├── contracts/
+│   ├── R4VRFVerifier.sol         # Minimal ECDSA verifier
+│   └── R4VRFVerifierCanonical.sol# Production verifier
+│
+├── spec/
+│   └── vrf-spec-v0.md            # Formal specification
+│
+└── test/
+    ├── verify_raw_digest.js      # Unit tests
+    └── verify_live.js            # Integration tests
+```
+
+---
+
+## Testing
 
 ### Setup
 
 ```bash
-# Install dependencies
 npm install
-
-# Run local Ethereum node
 npx hardhat node --hostname 0.0.0.0
 ```
 
@@ -272,144 +294,239 @@ npx hardhat node --hostname 0.0.0.0
 npx hardhat test --network localhost
 ```
 
-**Expected output:**
-```
-  R4 VRF Verifier
-    ✓ should verify valid signature (142ms)
-    ✓ should reject invalid signature (98ms)
-    ✓ should reject wrong signer (75ms)
-    ✓ should produce deterministic randomness (56ms)
-    ✓ should verify live R4 output (112ms)
-    ✓ should handle edge cases (89ms)
-
-  6 passing (523ms)
-```
-
-### Test Coverage
-
-- ✅ Raw digest recovery
-- ✅ Canonical live-node signature
-- ✅ Invalid signature rejection
-- ✅ Deterministic fairness
-- ✅ Signer mismatch detection
-- ✅ Edge case handling
+**Test coverage:**
+- Valid signature acceptance
+- Invalid signature rejection
+- Tampered message detection
+- Wrong signer rejection
+- Live node integration
 
 ---
 
-## ⚠️ Limitations (by design)
+## Integration Guide
 
-```
-┌──────────────────────────────────────────────────────────┐
-│                Current intentional limitations            │
-├──────────────────────────────────────────────────────────┤
-│  • Single trusted signer                                 │
-│  • No commit-reveal                                       │
-│  • No beacon or MPC                                       │
-│  • PQ-verification not enabled by default                 │
-└──────────────────────────────────────────────────────────┘
+### 1. Deploy Verifier Contract
+
+```solidity
+R4VRFVerifier verifier = new R4VRFVerifier(trustedSignerAddress);
 ```
 
-These are addressed in future versions:
+### 2. Request Randomness
 
-| Version | Upgrade |
-|---------|---------|
-| **v1** | Domain separation, nonce binding |
-| **v2** | Dual signatures (ECDSA + ML-DSA-65) |
-| **v3** | Committee randomness beacon |
+```bash
+curl https://vrf.re4ctor.com/v1/vrf?sig=ecdsa
+```
 
----
+Response:
+```json
+{
+  "randomness": "0x1a2b3c...",
+  "signature": {
+    "v": 27,
+    "r": "0x4d5e6f...",
+    "s": "0x7g8h9i..."
+  }
+}
+```
 
-## 📚 Documentation
+### 3. Verify On-Chain
 
-**Full technical documentation** (enterprise-grade):
-- [Re4ctoR Whitepaper](https://github.com/pipavlo82/r4-monorepo/blob/main/WHITEPAPER.md)
-- [Post-Quantum Design](https://github.com/pipavlo82/r4-monorepo/blob/main/POST_QUANTUM.md)
-- [Ethereum Integration Guide](https://github.com/pipavlo82/r4-monorepo/blob/main/ETH_INTEGRATION.md)
-
-**Statistical validation**:
-- [Core stream validation](https://github.com/pipavlo82/r4-monorepo/tree/main/packages/core/proof)
-- [VRF stream validation](https://github.com/pipavlo82/r4-monorepo/tree/main/packages/vrf-spec/components/r4-cs/rng_reports)
-
----
-
-## 🧬 Statistical Validation
-
-Both the sealed core and VRF-facing streams have been validated with industry-standard test batteries:
-
-**TestU01:**
-- BigCrush (core): 160/160 tests passed
-- Crush (VRF): 144/144 statistics passed
-
-**Dieharder 3.31.1:**
-- All tests passed (core + VRF)
-- No WEAK / FAILED results
-
-**PractRand v0.95:**
-- Core: 4 GiB, no anomalies
-- VRF: 2 GiB, no anomalies
-
-**NIST SP 800-22:**
-- VRF stream: full pass
-- All thresholds exceeded
-
-📊 **Detailed reports**: See [r4-monorepo documentation](https://github.com/pipavlo82/r4-monorepo)
+```solidity
+bool valid = verifier.verify(
+    randomness,
+    signature.v,
+    signature.r,
+    signature.s
+);
+```
 
 ---
 
-## 📞 Maintainer
+## Advanced Configuration
 
-<div align="center">
+### Custom Verifier
 
-**Pavlo Tvardovskyi** — R4 Architect
+```solidity
+contract CustomVRF {
+    R4VRFVerifier public vrf;
+    uint256 public nonce;
 
-📧 [Email](mailto:pavlo@re4ctor.com) • 🐦 [Twitter](https://twitter.com/pipavlo82) • 💼 [GitHub](https://github.com/pipavlo82)
+    function verifyWithNonce(
+        bytes32 randomness,
+        uint8 v, bytes32 r, bytes32 s
+    ) external {
+        require(vrf.verify(randomness, v, r, s));
+        
+        // Add application-specific validation
+        bytes32 expected = keccak256(abi.encodePacked(
+            randomness,
+            nonce,
+            msg.sender
+        ));
+        
+        require(expected == userCommitment[msg.sender]);
+        nonce++;
+    }
+}
+```
 
-</div>
+### Multi-Signature Verification
+
+```solidity
+contract MultiSigVRF {
+    R4VRFVerifier[] public verifiers;
+    uint256 public threshold;
+
+    function verifyThreshold(
+        bytes32 randomness,
+        Signature[] calldata sigs
+    ) external view returns (bool) {
+        require(sigs.length >= threshold);
+        
+        uint256 validCount = 0;
+        for (uint256 i = 0; i < sigs.length; i++) {
+            if (verifiers[i].verify(
+                randomness, 
+                sigs[i].v, 
+                sigs[i].r, 
+                sigs[i].s
+            )) {
+                validCount++;
+            }
+        }
+        
+        return validCount >= threshold;
+    }
+}
+```
 
 ---
 
-## 🤝 Contributing
+## FAQ
+
+### Why single-signer instead of threshold VRF?
+
+**Simplicity and latency.** Threshold VRF requires:
+- DKG coordination (setup complexity)
+- Multiple network round-trips (latency)
+- Threshold signature aggregation (gas costs)
+- Liveness assumptions on multiple parties
+
+For L2 sequencers and AA bundlers, the operator already controls critical infrastructure. Adding cryptographic decentralization without operational decentralization provides minimal security benefit while significantly increasing complexity.
+
+### How is this different from Chainlink VRF?
+
+| Aspect | R4 VRF | Chainlink VRF |
+|--------|--------|---------------|
+| Architecture | Single signer | Oracle network |
+| Latency | 14 ms | 60-180 seconds |
+| Gas cost | ~3,100 | ~200,000 |
+| Code complexity | ~50 lines | ~1,000+ lines |
+| Trust model | Operator | Committee |
+| Best for | L2s, AA, private chains | L1, trustless apps |
+
+### Is single-signer VRF secure enough?
+
+**It depends on your threat model.**
+
+If your application:
+- Runs on operator-controlled infrastructure (L2 sequencer)
+- Requires sub-second latency
+- Benefits from operational accountability
+- Can accept trusted signer model
+
+Then R4 VRF is appropriate.
+
+If your application:
+- Requires trustless randomness
+- Can tolerate 1-3 minute latency
+- Needs unbiasability guarantees
+- Must be censorship-resistant
+
+Then use Chainlink VRF or RANDAO instead.
+
+### What about quantum computers?
+
+R4 VRF includes explicit PQ migration:
+
+1. **Today**: ECDSA (quantum-vulnerable but practical)
+2. **Transition**: Dual ECDSA + ML-DSA-65 signatures
+3. **Future**: Pure ML-DSA-65 after EVM precompiles available
+
+Migration requires no contract redesign—just parameter updates.
+
+### Can I use this in production?
+
+**Current status**: v0 specification, suitable for:
+- Testnets ✅
+- Private/consortium rollups ✅
+- Controlled mainnet deployments with risk acceptance ✅
+
+**Not recommended for**:
+- High-value L1 contracts without external audit
+- Trustless applications requiring unbiasability
+- Critical infrastructure without operational monitoring
+
+**Security audit**: Pending (contact shtomko@gmail.com)
+
+---
+
+## Contributing
 
 Contributions welcome! Please:
 
-1. Open an issue first to discuss changes
-2. Follow existing code style
-3. Add tests for new features
-4. Update documentation
+1. Open an issue to discuss changes
+2. Keep verifier contract minimal
+3. Add tests for behavioral changes
+4. Update specification docs
+5. Follow existing code style
 
-**Security disclosures:** security@re4ctor.com (GPG key available)
+**Security disclosures**: shtomko@gmail.com (GPG available on request)
 
 ---
 
-## 📄 License
+## Resources
 
-Apache 2.0 — See [LICENSE](./LICENSE) for details.
+- **Specification**: [spec/vrf-spec-v0.md](./spec/vrf-spec-v0.md)
+- **PQ Migration**: [PQ-NOTES.md](./PQ-NOTES.md)
+- **Live Demo**: https://vrf.re4ctor.com
+- **Documentation**: https://docs.re4ctor.com/vrf
 
-**Summary:**
-- ✅ Commercial use allowed
-- ✅ Modification allowed
-- ✅ Distribution allowed
-- ⚠️ Trademark use not granted
-- ⚠️ No warranty provided
+### Related Projects
+
+- [Re4ctoR Core](https://github.com/pipavlo82/r4-monorepo) — Entropy generation engine
+- [Ethereum VRF Research](https://ethresear.ch/t/...) — Community discussion
+- [NIST PQC Standards](https://csrc.nist.gov/projects/post-quantum-cryptography)
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](./LICENSE)
+
+**Commercial use**: ✅ Allowed  
+**Modification**: ✅ Allowed  
+**Patent grant**: ✅ Included  
+**Trademark**: ❌ Not granted  
+**Warranty**: ❌ Provided "as is"  
+
+---
+
+## Contact
+
+**Pavlo Tvardovskyi**  
+R4 Project Lead  
+
+📧 shtomko@gmail.com  
+🐙 GitHub: [@pipavlo82](https://github.com/pipavlo82)  
+🌐 Web: [re4ctor.com](https://re4ctor.com)  
 
 ---
 
 <div align="center">
 
-```
-╔══════════════════════════════════════════════════════════════╗
-║                                                              ║
-║                 ⚛️  R4 VRF PUBLIC SPECIFICATION             ║
-║                                                              ║
-║           Open • Permissionless • Verifiable • PQ-Ready     ║
-║                                                              ║
-║     "Simple enough to audit. Secure enough for production." ║
-║                                                              ║
-╚══════════════════════════════════════════════════════════════╝
-```
+**R4 VRF: Simple enough to audit. Fast enough for production.**
 
-⭐ **If this helps Ethereum's research ecosystem — consider starring the repo.**
-
-[![GitHub stars](https://img.shields.io/github/stars/pipavlo82/r4-vrf-public-spec?style=social)](https://github.com/pipavlo82/r4-vrf-public-spec)
+⭐ Star this repo if you find it useful for your L2/AA infrastructure
 
 </div>
