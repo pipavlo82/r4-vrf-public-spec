@@ -490,13 +490,7 @@ Contributions welcome! Please:
 - **Specification**: [spec/vrf-spec-v0.md](./spec/vrf-spec-v0.md)
 - **PQ Migration**: [PQ-NOTES.md](./PQ-NOTES.md)
 - **Live Demo**: https://re4ctor.com/api/ 
-- **Documentation**: https://docs.re4ctor.com/vrf
 
-### Related Projects
-
-- [Re4ctoR Core](https://github.com/pipavlo82/r4-monorepo) — Entropy generation engine
-- [Ethereum VRF Research](https://ethresear.ch/t/...) — Community discussion
-- [NIST PQC Standards](https://csrc.nist.gov/projects/post-quantum-cryptography)
 
 ---
 
