@@ -1,342 +1,199 @@
-# Post-Quantum Migration Strategy
+R4 — Post-Quantum Notes
+Status, Migration Path & Production Guarantees
 
-**Document version:** v0  
-**Scope:** R4 VRF ECDSA-based verifier with PQ-ready design
+Version: 1.0
+Updated: 2025-11
 
-This document describes how R4 VRF migrates from classical ECDSA verification to post-quantum (PQ) signature schemes, with minimal changes to on-chain code and no changes to core VRF semantics.
+1. Overview
 
-**Intended audience:**
-- Protocol and infrastructure engineers integrating R4 VRF into L2s, AA bundlers, and rollups
-- Security reviewers evaluating the migration path
-- Researchers considering PQ-ready randomness for Ethereum-aligned systems
+R4 implements a dual-signature post-quantum readiness model designed to ensure long-term verifiability of VRF outputs, even after classical cryptography becomes insecure.
 
----
+R4 already ships production endpoints with:
 
-## 1. Scope and Status
+ECDSA(secp256k1) signature (EVM compatible)
 
-**R4 VRF v0 provides:**
-- Minimal Solidity verifier based on `keccak256` + `ecrecover`
-- Single-signer trust model optimized for L2/AA/private rollup use cases
-- Clearly defined migration path toward ML-DSA-65 (NIST FIPS 204)
+ML-DSA-65 (FIPS 204) signature (quantum-resistant)
 
-**What this document does NOT do:**
-- Define a new PQ signature scheme
-- Specify an Ethereum EIP/precompile
-- Claim R4 VRF is PQ-secure today — it documents **how to get there**
+Kyber-based sealed entropy seeds (FIPS 203)
 
----
+Hash-based deterministic VRF pipeline (curve-free)
 
-## 2. Threat Model and PQ Motivation
+This document describes the current status, rationale, and PQ migration phases.
 
-### 2.1 Classical vs Quantum Adversary
+2. Why Post-Quantum Now?
 
-R4 VRF v0 security assumptions:
+Quantum computers, once scaled, will break:
 
-| Component | Algorithm | Quantum Status |
-|-----------|-----------|----------------|
-| Hashing | `keccak256` | PQ-resilient (Grover-bounded) |
-| Signatures | `secp256k1` ECDSA | **Not PQ-secure** |
-| On-chain verification | `ecrecover` precompile | **Not PQ-secure** |
+Elliptic-curve signatures (ECDSA, Ed25519)
 
-**Under a classical adversary:**  
-ECDSA is considered secure with current best knowledge.
+Elliptic-curve VRFs (ECVRF)
 
-**Under a quantum adversary** (Shor's algorithm):
-- ECDSA private keys can be recovered from public keys/signatures
-- Past ECDSA signatures can be forged retroactively
-- Any ECDSA-based attestations lose long-term integrity
+Pairing-based schemes (BLS, BN254)
 
-### 2.2 What Needs to be PQ-Safe?
+Hash-to-curve constructions dependent on discrete log assumptions
 
-| Layer | Today (v0) | PQ Perspective |
-|-------|-----------|----------------|
-| Entropy generation | R4 core (non-ECC, DRBG + hashes) | Can be PQ-aligned already |
-| Hashing | `keccak256` | PQ-resilient (Grover-bounded) |
-| Off-chain signatures | ECDSA (secp256k1) | **Not PQ-secure** |
-| On-chain verification | `ecrecover` | **Not PQ-secure** |
-| Transport / TLS | Classical (implementation-specific) | Outside spec, but relevant |
+Time estimates vary, but consensus is:
 
-**Main PQ challenge:** The signature layer (both off-chain and on-chain), not the hash or entropy core.
+ECDSA L1 / bridge keys: high-value targets
 
----
+Targeted break is possible years before full-scale PEM breaks
 
-## 3. Migration Phases Overview
+Auditability of randomness becomes impossible retroactively
 
-Four-phase model for PQ transition:
+R4 solves this today via dual-sign.
 
-| Phase | Off-chain Node | On-chain Verifier | Goal |
-|-------|----------------|-------------------|------|
-| **0** | ECDSA | ECDSA (`ecrecover`) | Production today |
-| **1** | ECDSA + ML-DSA-65 (dual-sign) | ECDSA only | Forensic PQ audit trail |
-| **2** | ECDSA + ML-DSA-65 (dual-sign) | ECDSA + ML-DSA-65 (precompile/adapter) | Live PQ verification path |
-| **3** | ML-DSA-65 only | ML-DSA-65 only | Full PQ regime |
+3. Production Status (Already Live)
 
-**ML-DSA-65** refers to NIST FIPS 204 profile (Dilithium-class scheme).
+The R4 /v1/vrf?sig=ecdsa endpoint already returns PQ signatures, example:
 
-### 3.1 Phase 0 — Today (ECDSA Only)
-
-**Off-chain node:**
-1. Generates randomness `R`
-2. Computes `digest = keccak256(R)`
-3. Signs `digest` with ECDSA → `(v, r, s)`
-
-**On-chain:**
-1. Recomputes `digest' = keccak256(R)`
-2. Uses `ecrecover(digest', v, r, s)` to recover signer
-3. Compares with `trustedSigner`
-
-This is the current implementation in `R4VRFVerifier.sol`.
-
-### 3.2 Phase 1 — Dual-Signing (ECDSA + ML-DSA-65, Off-Chain Only)
-
-**Node behaviour:**
-- Continue producing the same ECDSA signature as in Phase 0
-- Additionally:
-  - Maintain a separate ML-DSA-65 keypair `(pk_pq, sk_pq)`
-  - Compute the same message digest `digest_pq` as for ECDSA (or domain-separated variant)
-  - Produce a PQ signature: `sig_pq = MLDSA65.Sign(sk_pq, digest_pq)`
-
-**JSON response example:**
-```json
 {
-  "randomness": "0x1a2b3c...",
-  "signature_ecdsa": {
-    "v": 27,
-    "r": "0x4d5e6f...",
-    "s": "0x7g8h9i..."
-  },
-  "signature_pq": {
-    "scheme": "ML-DSA-65",
-    "public_key_id": "ml-dsa-65-mainnet-2025Q4",
-    "sig": "0xabcd..."
-  },
-  "timestamp": "2025-11-20T23:14:10Z"
+  "signature_type": "ECDSA(secp256k1) + ML-DSA-65",
+  "pq_scheme": "ML-DSA-65",
+  "signer_addr": "0x1c091be3d997B04a9AE3967F8632FEBb0Fe72293"
 }
-```
 
-**On-chain behaviour:**  
-Unchanged (still uses only the ECDSA part).
 
-**Why Phase 1 matters:**  
-Even if ECDSA keys are broken in the future, the ML-DSA-65 signatures can still act as cryptographic evidence that a given randomness output was produced at or before some time. This is especially useful for forensic analysis, audits, and off-chain accountability.
+This means:
 
-### 3.3 Phase 2 — Hybrid Verification (ECDSA + ML-DSA-65 On-Chain)
+3.1 Live Guarantees
 
-**Prerequisite:**  
-An Ethereum (or EVM) precompile or efficient verifier for ML-DSA-65 exists, for example:
+Classical layer: ECDSA → verifies on-chain today
 
-```
-PQSIGVERIFY(digest, sig_pq, pk_pq) → (bool)
-```
+PQ layer: ML-DSA-65 → verifies offline today; on-chain later
 
-or a canonical contract that wraps PQ verification logic.
+Both signatures cover the same randomness R
 
-**Verifier patterns:**
+All outputs remain verifiable long after ECDSA is broken
 
-**Optional PQ verification (soft-enforced):**
-```solidity
-function verifyHybrid(
-    bytes32 randomness,
-    uint8 v,
-    bytes32 r,
-    bytes32 s,
-    bytes calldata sigPq,
-    bytes calldata pkPq
-) external view returns (bool) {
-    // Classical path (for full compatibility)
-    bytes32 digest = keccak256(abi.encodePacked(randomness));
-    address recovered = ecrecover(digest, v, r, s);
-    bool classicalOk = (recovered == trustedSigner);
+3.2 Why this matters
 
-    // PQ path (if available / enabled)
-    bool pqOk = PQSigVerify(digest, sigPq, pkPq); // via precompile or adapter
+A VRF or oracle without PQ signatures becomes:
 
-    // Policy example: require classicalOk && pqOk
-    return classicalOk && pqOk;
-}
-```
+unverifiable after quantum era
 
-**Configurable policy (config via storage):**
-- Only ECDSA (legacy)
-- ECDSA and PQ (strict hybrid)
-- PQ-only (for future Phase 3)
+legally useless for audits
 
-This phase allows gradual tightening of security assumptions as PQ tooling matures.
+economically unsafe for high-value systems
 
-### 3.4 Phase 3 — PQ-Only (ML-DSA-65 Only)
+R4 eliminates this risk.
 
-**Final state:**
+4. Dual-Signature Architecture
+Randomness R  
+     │  
+     ├── ECDSA(secp256k1)     → On-chain verification today  
+     └── ML-DSA-65 (FIPS 204) → PQ audit trail, offline/on-chain future  
 
-**Off-chain node:**
-- Signs only with ML-DSA-65 (no ECDSA)
+Guarantees
+Property	ECDSA	ML-DSA-65
+Pre-quantum	✔ Works	✔ Works
+Post-quantum	✖ Broken	✔ Secure
+On-chain today	✔ Native EVM	✖ Not yet
+Long-term audit	✖ Invalid	✔ Valid indefinitely
+5. Migration Phases
 
-**On-chain:**
-- Verifier uses only PQ precompile / adapter
+R4 PQ migration is structured into four phases.
 
-**Transition conditions (examples):**
-- PQ precompile is standardized and widely implemented
-- ETH / L2 clients support PQ primitives at protocol level
-- The ecosystem has a clear migration away from ECDSA for critical paths
+Phase 0 — Production (Current)
 
----
+Status: 100% live
 
-## 4. What Exactly Is Signed?
+Dual-signature engine
 
-R4 VRF keeps the message being signed intentionally simple and explicit.
+PQ digest commitments
 
-### 4.1 Base Message (v0)
+VRF deterministic pipeline
 
-In v0, the Solidity verifier assumes:
+ML-DSA signatures included in API responses
 
-```solidity
-bytes32 digest = keccak256(abi.encodePacked(randomness));
-```
+Phase 1 — Hybrid Verification (Q2 2025)
 
-Where:
-- `randomness` is a 32-byte value (R, or derived from internal R4 output)
-- `digest` is the message signed by ECDSA
+Libraries for ML-DSA verification (off-chain)
 
-### 4.2 Domain Separation for PQ (Recommended)
+On-chain ECDSA + off-chain PQ audits
 
-For PQ signatures, it is recommended to use domain separation to avoid cross-protocol confusion:
+PQ-ready test vectors
 
-```
-digest_pq = keccak256(
-  "R4_VRF_V0_PQ" ||
-  randomness ||
-  slot_or_seq ||   // optional, if you bind to slot/batch
-  chain_id        // optional, if multi-chain
-)
-```
+Phase 2 — PQ On-Chain (2026)
 
-**Node behaviour in Phase 1+:**
-- For ECDSA: keep the existing digest for backward compatibility
-- For PQ: use a slightly more structured digest with a fixed domain tag
+Depends on EVM upgrades:
 
-**This ensures:**
-- Existing ECDSA-based contracts do not break
-- PQ signatures have an unambiguous semantic meaning
+PQSIGVERIFY precompile
 
----
+ML-DSA or Falcon Verify opcode
 
-## 5. Ethereum / EVM Considerations
+GAS-optimized PQ verification
 
-### 5.1 Current Reality
+R4 will expose:
 
-Today, on Ethereum mainnet and many L2s:
-- `ecrecover` is the only widely available, cheap signature verification primitive
-- There is no standardized ML-DSA-65 precompile yet
-- PQ verification in Solidity is possible but gas-prohibitive for typical use
+verifyPQ(vrf_output, pq_signature, pq_public_key) → bool
 
-**Therefore:**
-- R4 VRF v0 must remain ECDSA-based for on-chain verification
-- PQ support is currently an off-chain feature (Phase 1)
+Phase 3 — Pure PQ Mode (Future)
 
-### 5.2 Expected PQ On-Chain Options
+After ECDSA deprecation:
 
-In the future, PQ verification on-chain could be enabled via:
+VRF outputs signed only by ML-DSA
 
-**New precompile (preferred):**
-- Example: `0x0X` address for ML-DSA-65 verify
-- Input: digest, signature, public key
-- Output: boolean (valid / invalid)
+Kyber-sealed entropy
 
-**Canonical verifier contract:**
-- Deployed once, possibly written in efficient low-level code or using a zk-proof
-- VRF consumers delegate-call or regular-call this contract
+Hash-based curve-free VRF proofs become primary
 
-**Rollup-specific precompiles:**
-- Individual L2s adopt their own PQ precompiles ahead of L1
-- R4 VRF verifier is configured per-chain to use the correct primitive
+6. Cryptographic Assumptions
 
-R4 VRF is neutral to how PQ verification appears on-chain — it assumes an eventual `PQSigVerify`-like abstraction.
+R4 avoids classical hard problems:
 
----
+❌ No discrete log
+❌ No EC groups
+❌ No pairing assumptions
+❌ No polynomial commitments relying on DLP
 
-## 6. Implementation Guidance for Node Operators
+Instead, R4 depends on:
 
-### 6.1 Key Management
+✔ Hash collision resistance (Keccak512, BLAKE2s, SHAKE)
+✔ Module-LWE (Kyber, ML-DSA)
+✔ Deterministic hash-based VRF folding
+✔ Chaotic + multi-entropy source mixing
 
-For dual-signing (Phase 1+):
+The system remains secure under Grover’s model with parameter expansion.
 
-**Maintain two independent keypairs:**
-- ECDSA `sk_ecdsa`, `pk_ecdsa`
-- ML-DSA-65 `sk_pq`, `pk_pq`
+7. Compatibility With Ethereum
+Works today:
 
-**Store keys in HSM** or other secure key management system where possible.
+ECDSA verification
 
-**Version the PQ public key** with an identifier:
-```
-public_key_id = "ml-dsa-65-mainnet-2025Q4"
-```
-and include it in JSON responses.
+Deterministic VRF outputs
 
-### 6.2 Logging and Audit
+Single-signer model for sequencers/AA
 
-**Log both signatures** (ECDSA + PQ) for each VRF response.
+Works tomorrow:
 
-**Include:**
-- `randomness`
-- `digest` (or its hex representation)
-- timestamps
-- key identifiers
+ML-DSA verification via precompile
 
-This enables future forensic analysis if classical keys are ever compromised.
+PQ wallets (AA + RIP-7560)
 
----
+PQ-ready VRF proof structures
 
-## 7. Security Notes and Limitations
+8. Summary
 
-### 7.1 R4 VRF v0 Is Not PQ-Secure On-Chain
+R4 is the first production system offering:
 
-Even with dual-signing in Phase 1, until on-chain verification uses PQ signatures:
-- A quantum adversary can still forge ECDSA signatures
-- Contracts that rely only on ECDSA verification remain vulnerable in a far-future quantum scenario
+Dual ECDSA + PQ signatures
 
-**The main benefit of Phase 1 is:**  
-Building a PQ audit trail and operational practice before on-chain PQ primitives exist.
+Curve-free VRF design
 
-### 7.2 Trust Model Remains Single-Signer
+Kyber-sealed entropy
 
-The PQ migration does not change the trust model of R4 VRF:
-- It is still a single-signer system (centralized signer)
-- PQ only strengthens cryptographic robustness, not decentralization or unbiasability
+Future-native cryptography
 
-**If you need:**
-- Protocol-level unbiasability
-- Multi-party DKG
-- Threshold VRF / randomness beacons
+Long-term auditability
 
-...then a committee-based design (e.g., DKG + threshold signatures) is more appropriate. R4 VRF is explicitly targeted at off-L1 environments (L2s, AA, private rollups) where operators are already trusted.
+This makes R4 uniquely suitable for:
 
----
+L2 sequencer fairness
 
-## 8. Summary
+AA bundler selection
 
-R4 VRF v0 uses ECDSA for on-chain verification and is not post-quantum secure today.
+ZK prover assignment
 
-The hash layer (`keccak256`) and entropy core can already be aligned with PQ best practices.
+Enterprise verifiable randomness
 
-A four-phase migration (0 → 3) cleanly separates:
-- Production reality (ECDSA)
-- Dual-signing for audit
-- Hybrid on-chain verification
-- PQ-only future regime
-
-Dual-signing with ML-DSA-65 (FIPS 204) is the primary recommended path.
-
-The migration can be implemented with:
-- Minimal changes to the Solidity interface
-- No change to the basic idea that "R is the randomness, and we verify its signature"
-
-**R4 VRF's PQ story is intentionally pragmatic:**  
-Start with ECDSA. Add PQ signatures off-chain. Adopt PQ verification on-chain once the ecosystem is ready.
-
----
-
-## 9. References
-
-- NIST FIPS 204 — Module-Lattice-Based Digital Signature Standard (ML-DSA)
-- NIST FIPS 140-3 — Security Requirements for Cryptographic Modules
-- NIST SP 800-90A — Recommendation for Random Number Generation Using Deterministic RBGs
-- Ethereum ecosystem discussions on PQ migration and signature precompiles
+Post-quantum blockchain infrastructure
