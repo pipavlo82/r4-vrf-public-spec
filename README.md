@@ -43,6 +43,43 @@ R4 VRF assumes a trusted operator (L2 sequencer, AA bundler, or private rollup p
 - No protocol redesign needed for PQ transition
 
 ---
+## Abstract
+
+This document describes a minimal, deterministic, single-signer VRF designed 
+for L2 sequencers, AA bundlers, ZK-proof coordinators, and operator-controlled 
+rollups. It prioritizes latency, auditability, and post-quantum migration over 
+unbiasability or decentralization. The specification formalizes the verification 
+path, security assumptions, and ECDSA/PQ signature structure for on-chain verification.
+
+## Rationale
+
+Threshold VRFs and DKG-based beacons offer strong unbiasability at the cost of 
+latency, operational fragility, and multi-party coordination. For environments 
+where the operator is already trusted (L2 sequencers, bundlers, ZK coordinators), 
+a single-signer VRF provides the optimal trade-off: deterministic verification, 
+minimal attack surface, and sub-20ms response time.
+
+This specification intentionally avoids:
+- committee coordination
+- threshold signing
+- multi-round protocols
+- heavy cryptographic primitives (pairings, hash-to-curve)
+
+The result is a practical VRF suitable for production today, while retaining a 
+clear migration path to NIST-standardized post-quantum signatures.
+
+## Out of Scope
+
+This document does not attempt to:
+- provide unbiasable randomness,
+- replace L1 beacons,
+- define DKG procedures,
+- handle signer liveness or rotation,
+- define commit–reveal schemes.
+
+These concerns belong to a different class of protocols (e.g., threshold VRFs,
+RANDAO, DKG-based beacons). This specification focuses solely on deterministic,
+low-latency verification for operator-controlled trust domains.
 
 ## Verification Flow
 
